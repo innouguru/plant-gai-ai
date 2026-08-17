@@ -1,0 +1,1 @@
+"""Pydantic schemas for the Plant-GAI-AI backend."""

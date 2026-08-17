@@ -1,0 +1,11 @@
+{
+  "model_name": "plant_disease_resnet18_best.pth",
+  "architecture": "resnet18",
+  "version": "1.0.0",
+  "input_size": 224,
+  "class_count": 22,
+  "test_accuracy": 0.8804,
+  "device": "cpu",
+  "train_status": "FINAL",
+  "notes": "Already-trained model. Do not retrain, fine-tune, or replace. Full inference integration lands in Phase 2; preprocessing values will be copied from the verified original training configuration."
+}
