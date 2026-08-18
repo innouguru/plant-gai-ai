@@ -2,46 +2,82 @@
 
 ## Status
 
-**Phase 0: no schema.** The backend does not connect to a database and no
-migrations exist. This document records the *planned* data model so that
-Phase 1 and later phases can be implemented consistently.
-
-Everything below is a **future design** and must not be implemented yet.
+**Phase 1 implemented.** The schema ships in
+`supabase/migrations/0001_auth_foundation.sql` and covers authentication and
+farm membership. Later features (diagnoses, messaging) keep the same
+conventions and are planned below.
 
 ## Platform
 
 - PostgreSQL hosted by Supabase.
-- Auth handled by Supabase Auth (managed users table) from Phase 1.
-- SQL migrations will be stored in `supabase/migrations/`.
+- Auth handled by Supabase Auth (managed `auth.users` table).
+- Row Level Security enabled on every application table.
+- SQL migrations stored in `supabase/migrations/`.
 
-## Planned entities
+## Phase 1 entities
 
 ### profiles
 
-Extends the Supabase Auth `auth.users` record with application data.
+Extends the Supabase Auth `auth.users` record with application data. Row-level
+reads are limited to the own profile (plus admins reading their own farm's
+members). There is **no** `INSERT`/`UPDATE` policy — role and farm changes only
+happen inside SECURITY DEFINER functions keyed on `auth.uid()`.
 
 | column | type | notes |
 | --- | --- | --- |
-| id | uuid | FK -> `auth.users(id)` |
-| full_name | text | |
-| phone | text | optional |
-| role | enum | `farmer` \| `admin` |
-| farm_id | uuid, null | FK -> `farms(id)`, null until assigned |
+| id | uuid | PK, FK -> `auth.users(id)` ON DELETE CASCADE |
+| email | text | from the auth user |
+| full_name | text, null | |
+| role | `public.app_role` | `farmer` \| `farm_admin`; default `farmer` |
+| farm_id | uuid, null | FK -> `farms(id)` ON DELETE SET NULL; null until assigned |
 | created_at | timestamptz | |
+
+A trigger (`handle_new_user`) inserts a row whenever an auth user is created.
 
 ### farms
 
 | column | type | notes |
 | --- | --- | --- |
 | id | uuid | PK |
-| name | text | |
-| location | text | optional |
-| admin_id | uuid | FK -> `profiles(id)` |
+| name | text | `char_length` 2..120 |
+| admin_id | uuid | FK -> `profiles(id)` ON DELETE RESTRICT |
 | created_at | timestamptz | |
 
-### diagnoses
+The circular `farms.admin_id` <-> `profiles.farm_id` relation is resolved
+after both tables exist.
 
-Stores one AI diagnosis per uploaded leaf photo.
+### invitations
+
+One row per email invited to join a farm.
+
+| column | type | notes |
+| --- | --- | --- |
+| id | uuid | PK |
+| farm_id | uuid | FK -> `farms(id)` ON DELETE CASCADE |
+| email | text | |
+| invited_name | text, null | |
+| status | `public.invitation_status` | `pending` \| `accepted` |
+| created_at | timestamptz | |
+| accepted_at | timestamptz, null | |
+
+Invitations are inserted/read by the farm admin of the target farm; the invited
+farmer can read their own.
+
+## SECURITY DEFINER transitions
+
+Because profiles have no direct update policy, guarded transitions run as
+SECURITY DEFINER functions that re-check `auth.uid()` internally:
+
+- `complete_admin_onboarding(new_farm_name)` — creates a farm and promotes the
+  caller to `farm_admin`. Only allowed while the caller has no farm.
+- `update_profile_full_name(p_full_name)` — updates the caller's own display
+  name.
+- `claim_pending_invitation()` — binds the caller to the farm of their oldest
+  pending invitation (role `farmer`, farm_id from the invitation row).
+
+## Planned entities (future phases)
+
+### diagnoses (Phase 2)
 
 | column | type | notes |
 | --- | --- | --- |
@@ -54,9 +90,7 @@ Stores one AI diagnosis per uploaded leaf photo.
 | confidence | numeric | 0..1 |
 | created_at | timestamptz | |
 
-### messages
-
-One-to-one or one-to-many messaging between admins and farmers.
+### messages (Phase 3)
 
 | column | type | notes |
 | --- | --- | --- |

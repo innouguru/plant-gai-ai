@@ -3,16 +3,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.errors import provider_error_to_response
 from app.api.v1 import api_router
 from app.core.config import get_settings
+from app.db.errors import ProviderError
 
 settings = get_settings()
 
 app = FastAPI(
     title="Plant-GAI-AI API",
     description="Backend for the Plant-GAI-AI plant disease diagnosis app.",
-    version="0.1.0",
+    version="0.2.0",
 )
+
+app.add_exception_handler(ProviderError, provider_error_to_response)
 
 app.add_middleware(
     CORSMiddleware,

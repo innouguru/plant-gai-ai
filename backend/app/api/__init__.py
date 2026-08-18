@@ -1,1 +1,1 @@
-"""API layer for the Plant-GAI-AI backend."""
+"""Web/API layer package for the Plant-GAI-AI backend."""

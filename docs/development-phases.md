@@ -4,7 +4,7 @@ Plant-GAI-AI is developed in **controlled phases**. Each phase must be
 completed, tested, and approved before the next begins. Agents must implement
 only the phase requested and must not start a later phase early.
 
-## Phase 0 — Project foundation (CURRENT)
+## Phase 0 — Project foundation (done)
 
 | Status | Deliverable |
 | --- | --- |
@@ -19,16 +19,21 @@ only the phase requested and must not start a later phase early.
 | Done | Supabase scaffolding (no features) |
 | Done | ML inference scaffolding (no model loading) |
 
-Acceptance: see the checklist in the Phase 0 task definition. No auth, no
-diagnosis, no database schema, no messaging, no admin dashboard.
+## Phase 1 — Accounts and farms (CURRENT)
 
-## Phase 1 — Accounts and farms (planned)
+| Status | Deliverable |
+| --- | --- |
+| Done | Supabase Auth integration: sign up, sign in, password reset, invited registration |
+| Done | `profiles`, `farms`, `invitations` tables + migration `0001_auth_foundation.sql` |
+| Done | Row Level Security and SECURITY DEFINER transitions (onboarding, full-name update, invitation claim) |
+| Done | Backend JWT verification (`/auth/me`) and farm-admin enforcement |
+| Done | Endpoints: `POST /onboarding`, `POST /invitations`, `POST /invitations/accept`, `GET /farms/{farm_id}/members` |
+| Done | Frontend login/registration/reset screens, session handling, role-based routing and shells |
+| Done | `FRONTEND_ORIGIN` / Supabase environment wiring + docs update |
 
-- Supabase Auth integration (register/login, password reset).
-- `profiles` and `farms` tables + migrations.
-- Farmer profile and farm membership endpoints.
-- Frontend login/registration screens and session handling.
-- Default CORS/origin handling for authenticated requests.
+Acceptance: authenticated flows work end to end with a configured Supabase
+project; backend and frontend test suites pass. Diagnosis, camera, storage,
+history, statistics, and messaging are intentionally **not** implemented.
 
 ## Phase 2 — Diagnosis (planned)
 
