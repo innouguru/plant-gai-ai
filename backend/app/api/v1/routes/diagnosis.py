@@ -1,9 +1,10 @@
-"""Farmer diagnosis endpoint backed by the real ResNet-18 model."""
+"""Farmer diagnosis endpoints: real inference, persistence, and history."""
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
-from app.api.deps import UserContext, get_diagnosis_service, require_farmer
-from app.schemas.diagnosis import DiagnosisResult
+from app.api.deps import UserContext, get_diagnosis_service, get_provider, require_farmer
+from app.db.interface import DataProvider
+from app.schemas.diagnosis import DiagnosisHistoryItem, DiagnosisResult
 from app.services.diagnosis_service import diagnose_image
 from app.services.ml.inference_service import (
     ImageDecodeError,
@@ -17,20 +18,23 @@ router = APIRouter(prefix="/diagnosis", tags=["diagnosis"])
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 SUPPORTED_IMAGE_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
 
+DEFAULT_HISTORY_LIMIT = 20
+MAX_HISTORY_LIMIT = 100
+
 
 @router.post("", response_model=DiagnosisResult)
 async def run_diagnosis(
     image: UploadFile = File(..., description="Leaf photo to analyze"),
     ctx: UserContext = Depends(require_farmer),
     service: InferenceService = Depends(get_diagnosis_service),
+    provider: DataProvider = Depends(get_provider),
 ) -> DiagnosisResult:
-    """Analyze one farm leaf photo and return the predicted disease.
+    """Analyze one leaf photo, persist the diagnosis, and return the result.
 
-    The farmer must be authenticated and a member of a farm. The model and all
-    derived values (disease, confidence, crop) are computed server-side.
+    The farmer must be authenticated and a member of a farm. The diagnosis is
+    persisted only after real inference succeeds; ownership (farmer_id/farm_id)
+    is derived from the authenticated profile, never from the client.
     """
-    del ctx  # authorization already enforced by require_farmer
-
     if image.content_type not in SUPPORTED_IMAGE_MEDIA_TYPES:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -62,4 +66,65 @@ async def run_diagnosis(
             detail="The photo could not be read. Please try a different photo.",
         ) from exc
 
-    return DiagnosisResult(**result)
+    diagnosis = provider.create_diagnosis(
+        token=ctx.token,
+        disease=result["disease"],
+        confidence=result["confidence"],
+        crop=result["crop"],
+        model_version=result["model_version"],
+    )
+
+    return DiagnosisResult(
+        id=diagnosis.id,
+        disease=diagnosis.disease,
+        confidence=diagnosis.confidence,
+        crop=diagnosis.crop,
+        model_version=diagnosis.model_version,
+        created_at=diagnosis.created_at,
+    )
+
+
+@router.get("/history", response_model=list[DiagnosisHistoryItem])
+def list_history(
+    ctx: UserContext = Depends(require_farmer),
+    provider: DataProvider = Depends(get_provider),
+    limit: int = Query(default=DEFAULT_HISTORY_LIMIT, ge=1, le=MAX_HISTORY_LIMIT),
+) -> list[DiagnosisHistoryItem]:
+    """Return the authenticated farmer's diagnoses, newest first."""
+    rows = provider.list_diagnoses(token=ctx.token, farmer_id=ctx.user_id, limit=limit)
+    return [
+        DiagnosisHistoryItem(
+            id=row.id,
+            disease=row.disease,
+            confidence=row.confidence,
+            crop=row.crop,
+            model_version=row.model_version,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
+
+
+@router.get("/{diagnosis_id}", response_model=DiagnosisHistoryItem)
+def get_history_detail(
+    diagnosis_id: str,
+    ctx: UserContext = Depends(require_farmer),
+    provider: DataProvider = Depends(get_provider),
+) -> DiagnosisHistoryItem:
+    """Return one of the caller's own diagnoses by id (404 otherwise)."""
+    row = provider.get_diagnosis(
+        token=ctx.token, diagnosis_id=diagnosis_id, farmer_id=ctx.user_id
+    )
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="That diagnosis could not be found.",
+        )
+    return DiagnosisHistoryItem(
+        id=row.id,
+        disease=row.disease,
+        confidence=row.confidence,
+        crop=row.crop,
+        model_version=row.model_version,
+        created_at=row.created_at,
+    )

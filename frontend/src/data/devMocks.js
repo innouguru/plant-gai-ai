@@ -1,11 +1,11 @@
 // ---------------------------------------------------------------------------
 // DEVELOPMENT / MOCK DATA
 //
-// Live farmer diagnosis now runs against the real backend (Phase 2). History,
-// admin dashboard, and messaging screens are not yet backed by services, so
-// this file keeps clearly isolated sample data used ONLY to render the
-// approved UI screens. Nothing here is served as if it came from the backend,
-// and inference is never faked.
+// Live farmer diagnosis and history now run against the real backend
+// (Phases 2-3). The admin dashboard, report, and messaging screens are not yet
+// backed by services, so this file keeps clearly isolated sample data used
+// ONLY to render the approved UI screens. Nothing here is served as if it came
+// from the backend, and inference is never faked.
 // ---------------------------------------------------------------------------
 
 const DAY = 86400000;

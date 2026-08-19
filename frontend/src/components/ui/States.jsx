@@ -19,10 +19,11 @@ export function LoadingState({ message = "Loading..." }) {
   );
 }
 
-export function EmptyState({ title = "Nothing here yet", message }) {
+export function EmptyState({ title = "Nothing here yet", message, children }) {
   return (
     <StateScreen icon="leaf" title={title}>
       {message && <p>{message}</p>}
+      {children}
     </StateScreen>
   );
 }

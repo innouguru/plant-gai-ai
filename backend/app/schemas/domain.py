@@ -51,3 +51,18 @@ class Invitation(BaseModel):
     invited_name: str | None = None
     status: InvitationStatus
     created_at: datetime | None = None
+
+
+class Diagnosis(BaseModel):
+    """An immutable, persisted diagnosis record owned by a farmer and farm."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    farmer_id: str
+    farm_id: str
+    disease: str
+    confidence: float
+    crop: str
+    model_version: str
+    created_at: datetime | None = None

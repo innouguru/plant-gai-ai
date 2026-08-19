@@ -188,13 +188,24 @@ def test_valid_image_returns_result(provider, client, diagnosis_service, make_to
 
     assert response.status_code == 200
     body = response.json()
-    assert set(body.keys()) == {"disease", "confidence", "crop", "model_version"}
+    assert set(body.keys()) == {"id", "disease", "confidence", "crop", "model_version", "created_at"}
     assert body["disease"] == "Cassava mosaic"
     assert body["disease"] in CLASS_NAMES
     assert isinstance(body["confidence"], float)
     assert 0.0 <= body["confidence"] <= 1.0
     assert body["crop"] == "Cassava"
     assert body["model_version"] == "1.0.0"
+    assert body["id"]
+    assert body["created_at"]
+
+    # The diagnosis was persisted for the authenticated farmer and their farm.
+    assert len(provider.diagnoses) == 1
+    persisted = next(iter(provider.diagnoses.values()))
+    assert persisted.farmer_id == farmer.id
+    assert persisted.farm_id == "farm-1"
+    assert persisted.disease == "Cassava mosaic"
+    assert persisted.confidence == 0.91
+    assert persisted.crop == "Cassava"
 
 
 # ----------------------------------------------------------------------

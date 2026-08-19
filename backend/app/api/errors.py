@@ -15,6 +15,8 @@ _STATUS_BY_CODE: dict[str, tuple[int, str]] = {
     "invite_insert_failed": (400, "Could not record the invitation."),
     "invite_exists": (400, "This email is already registered. Farmers are added through an invitation email."),
     "profile_update_failed": (400, "Could not update your profile."),
+    "diagnosis_save_failed": (400, "We could not save your diagnosis. Please try again."),
+    "diagnosis_forbidden": (403, "Only farmers on a farm can run a diagnosis."),
 }
 
 _BACKEND_DEFAULT = "An external service error occurred. Please try again."

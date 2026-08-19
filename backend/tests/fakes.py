@@ -8,7 +8,14 @@ from fastapi import HTTPException
 
 from app.core.security import decode_access_token
 from app.db.errors import ProviderError
-from app.schemas.domain import Farm, Invitation, InvitationStatus, Profile, Role
+from app.schemas.domain import (
+    Diagnosis,
+    Farm,
+    Invitation,
+    InvitationStatus,
+    Profile,
+    Role,
+)
 
 
 def _now() -> datetime:
@@ -22,6 +29,7 @@ class FakeDataProvider:
         self.profiles: dict[str, Profile] = {}
         self.farms: dict[str, Farm] = {}
         self.invitations: dict[str, Invitation] = {}
+        self.diagnoses: dict[str, Diagnosis] = {}
         self.invite_calls: list[dict] = []
         self.fail_invite_emails: set[str] = set()
         self._seq = itertools.count(1)
@@ -74,6 +82,77 @@ class FakeDataProvider:
         )
         self.invitations[inv.id] = inv
         return inv
+
+    def seed_diagnosis(
+        self,
+        *,
+        farmer_id: str,
+        farm_id: str,
+        disease: str = "Cassava mosaic",
+        confidence: float = 0.9,
+        crop: str = "Cassava",
+        model_version: str = "1.0.0",
+        created_at: datetime | None = None,
+    ) -> Diagnosis:
+        diagnosis = Diagnosis(
+            id=self.new_id("diag-"),
+            farmer_id=farmer_id,
+            farm_id=farm_id,
+            disease=disease,
+            confidence=confidence,
+            crop=crop,
+            model_version=model_version,
+            created_at=created_at or _now(),
+        )
+        self.diagnoses[diagnosis.id] = diagnosis
+        return diagnosis
+
+    # ------------------------------------------------------------------
+    # diagnoses (parity with the Supabase SECURITY DEFINER + RLS behavior)
+    # ------------------------------------------------------------------
+
+    def create_diagnosis(
+        self,
+        token: str,
+        *,
+        disease: str,
+        confidence: float,
+        crop: str,
+        model_version: str,
+    ) -> Diagnosis:
+        """Persist a diagnosis deriving farmer_id/farm_id from the token/profile."""
+        user_id = self._user_id_from_token(token)
+        profile = self.profiles.get(user_id)
+        if profile is None:
+            raise ProviderError("not_authenticated", "profile not found")
+        if profile.role != Role.farmer or profile.farm_id is None:
+            raise ProviderError("diagnosis_forbidden", "not an eligible farmer")
+
+        diagnosis = Diagnosis(
+            id=self.new_id("diag-"),
+            farmer_id=user_id,
+            farm_id=profile.farm_id,
+            disease=disease,
+            confidence=confidence,
+            crop=crop,
+            model_version=model_version,
+            created_at=_now(),
+        )
+        self.diagnoses[diagnosis.id] = diagnosis
+        return diagnosis
+
+    def list_diagnoses(self, token: str, *, farmer_id: str, limit: int = 20) -> list[Diagnosis]:
+        """Return the farmer's own diagnoses, newest first (RLS parity)."""
+        rows = [d for d in self.diagnoses.values() if d.farmer_id == farmer_id]
+        rows.sort(key=lambda d: d.created_at or _now(), reverse=True)
+        return rows[:limit]
+
+    def get_diagnosis(self, token: str, *, diagnosis_id: str, farmer_id: str) -> Diagnosis | None:
+        """Return a diagnosis only if it belongs to the farmer (RLS parity)."""
+        diagnosis = self.diagnoses.get(diagnosis_id)
+        if diagnosis is None or diagnosis.farmer_id != farmer_id:
+            return None
+        return diagnosis
 
     # ------------------------------------------------------------------
     # helpers

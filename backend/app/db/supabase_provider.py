@@ -14,7 +14,7 @@ import httpx
 
 from app.db.errors import ProviderError
 from app.db.interface import DataProvider
-from app.schemas.domain import Farm, Invitation, InvitationStatus, Profile, Role
+from app.schemas.domain import Diagnosis, Farm, Invitation, InvitationStatus, Profile, Role
 
 _TIMEOUT = httpx.Timeout(15.0)
 
@@ -188,6 +188,78 @@ class SupabaseDataProvider:
             },
         )
         self._raise_for_status(response)
+
+    # ------------------------------------------------------------------
+    # diagnoses (append-only; caller identity derived from the JWT)
+    # ------------------------------------------------------------------
+
+    def create_diagnosis(
+        self,
+        token: str,
+        *,
+        disease: str,
+        confidence: float,
+        crop: str,
+        model_version: str,
+    ) -> Diagnosis:
+        """Persist a diagnosis for the authenticated user and their farm.
+
+        farmer_id/farm_id are derived inside ``save_diagnosis`` (SECURITY
+        DEFINER) from the caller's JWT/profile — never accepted from the client.
+        """
+        response = self._client.post(
+            f"{self._url}/rest/v1/rpc/save_diagnosis",
+            headers=self._user_headers(token),
+            json={
+                "p_disease": disease,
+                "p_confidence": confidence,
+                "p_crop": crop,
+                "p_model_version": model_version,
+            },
+        )
+        self._raise_for_status(response)
+        row = self._first_row(response.json())
+        if row is None:
+            raise ProviderError("diagnosis_save_failed", "Could not save the diagnosis.")
+        return Diagnosis.model_validate(row)
+
+    def list_diagnoses(self, token: str, *, farmer_id: str, limit: int = 20) -> list[Diagnosis]:
+        """Return the caller's own diagnoses, newest first.
+
+        The ``farmer_id`` filter is supplied by the server (the authenticated
+        user) and the "select own diagnosis" RLS policy also constrains rows to
+        the caller.
+        """
+        response = self._client.get(
+            f"{self._url}/rest/v1/diagnoses",
+            params={
+                "select": "id,farmer_id,farm_id,disease,confidence,crop,model_version,created_at",
+                "farmer_id": f"eq.{farmer_id}",
+                "order": "created_at.desc",
+                "limit": limit,
+            },
+            headers=self._user_headers(token),
+        )
+        self._raise_for_status(response)
+        return [Diagnosis.model_validate(row) for row in response.json()]
+
+    def get_diagnosis(self, token: str, *, diagnosis_id: str, farmer_id: str) -> Diagnosis | None:
+        """Return a single diagnosis only if it belongs to the caller."""
+        response = self._client.get(
+            f"{self._url}/rest/v1/diagnoses",
+            params={
+                "select": "id,farmer_id,farm_id,disease,confidence,crop,model_version,created_at",
+                "id": f"eq.{diagnosis_id}",
+                "farmer_id": f"eq.{farmer_id}",
+                "limit": 1,
+            },
+            headers=self._user_headers(token),
+        )
+        self._raise_for_status(response)
+        rows = response.json()
+        if not rows:
+            return None
+        return Diagnosis.model_validate(rows[0])
 
     # ------------------------------------------------------------------
     # helpers

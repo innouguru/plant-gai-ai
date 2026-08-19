@@ -55,10 +55,12 @@ const farmerProfile = {
 };
 
 const REAL_RESULT = {
+  id: "diag-1",
   disease: "Cassava mosaic",
   confidence: 0.91,
   crop: "Cassava",
   model_version: "1.0.0",
+  created_at: "2026-01-01T10:00:00Z",
 };
 
 function renderApp(route = "/diagnose") {
