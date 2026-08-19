@@ -9,6 +9,7 @@ export function isSessionExpiredError(error) {
 }
 
 export async function request(path, { method = "GET", body, token } = {}) {
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
   let response;
 
   try {
@@ -16,10 +17,10 @@ export async function request(path, { method = "GET", body, token } = {}) {
       method,
       headers: {
         Accept: "application/json",
-        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...(body !== undefined && !isFormData ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? (isFormData ? body : JSON.stringify(body)) : undefined,
     });
   } catch {
     const error = new Error(NETWORK_ERROR_MESSAGE);

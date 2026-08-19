@@ -5,6 +5,8 @@ import App from "../App";
 import { AuthProvider } from "../auth/AuthContext";
 import { supabase } from "../auth/supabase";
 import { fetchMe } from "../api/auth";
+import { submitDiagnosis } from "../api/diagnosis";
+import { NETWORK_ERROR_MESSAGE, SESSION_EXPIRED_MESSAGE } from "../api/client";
 
 vi.mock("../auth/supabase", () => ({
   supabase: {
@@ -29,9 +31,12 @@ vi.mock("../api/invitations", () => ({
   acceptInvitation: vi.fn(),
 }));
 vi.mock("../api/farms", () => ({ fetchFarmMembers: vi.fn() }));
+vi.mock("../api/diagnosis", () => ({ submitDiagnosis: vi.fn() }));
 
 const getSession = vi.mocked(supabase.auth.getSession);
 const fetchMeMock = vi.mocked(fetchMe);
+const submitDiagnosisMock = vi.mocked(submitDiagnosis);
+const signOutMock = vi.mocked(supabase.auth.signOut);
 
 const SESSION = {
   access_token: "token",
@@ -49,6 +54,13 @@ const farmerProfile = {
   requires_onboarding: false,
 };
 
+const REAL_RESULT = {
+  disease: "Cassava mosaic",
+  confidence: 0.91,
+  crop: "Cassava",
+  model_version: "1.0.0",
+};
+
 function renderApp(route = "/diagnose") {
   return render(
     <MemoryRouter initialEntries={[route]}>
@@ -59,8 +71,21 @@ function renderApp(route = "/diagnose") {
   );
 }
 
-function makeLeafFile() {
-  return new File([new Blob(["leaf"])], "leaf.png", { type: "image/png" });
+function makeLeafFile({ type = "image/png", bytes = 1000 } = {}) {
+  return new File([new Uint8Array(bytes)], "leaf.png", { type });
+}
+
+function selectLeafFile(file) {
+  const uploadInput = document.querySelector('input[type="file"]:not([capture])');
+  fireEvent.change(uploadInput, { target: { files: [file] } });
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
 }
 
 beforeEach(() => {
@@ -70,32 +95,37 @@ beforeEach(() => {
 });
 
 describe("farmer diagnose flow", () => {
-  it("walks through capture, preview, analyzing and result", async () => {
+  it("analyzes a selected photo against the real backend and shows the result", async () => {
+    const { promise, resolve } = deferred();
+    submitDiagnosisMock.mockReturnValue(promise);
     renderApp("/diagnose");
 
     expect(await screen.findByRole("button", { name: "Take Photo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Upload Photo" })).toBeInTheDocument();
 
-    const uploadInput = document.querySelector('input[type="file"]:not([capture])');
-    fireEvent.change(uploadInput, { target: { files: [makeLeafFile()] } });
-
+    selectLeafFile(makeLeafFile());
     expect(await screen.findByRole("button", { name: "Use Photo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retake" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Use Photo" }));
 
     expect(await screen.findByText(/Checking your leaf/)).toBeInTheDocument();
+    expect(submitDiagnosisMock).toHaveBeenCalledTimes(1);
+    expect(submitDiagnosisMock).toHaveBeenCalledWith(expect.any(File), SESSION.access_token);
+
+    resolve(REAL_RESULT);
 
     expect(
-      await screen.findByRole("heading", { name: "Cassava Mosaic Disease" }, { timeout: 3000 }),
+      await screen.findByRole("heading", { name: "Cassava Mosaic Disease" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/87% Confidence/)).toBeInTheDocument();
+    expect(screen.getByText(/91% Confidence/)).toBeInTheDocument();
     expect(screen.getByText("What this means")).toBeInTheDocument();
     expect(screen.getByText("What you can do")).toBeInTheDocument();
     expect(
-      screen.getByText(/advisory and does not replace professional agricultural advice/),
+      screen.getByText(/AI-assisted prediction and does not replace professional agricultural advice/),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Diagnose another plant" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View History" })).toBeInTheDocument();
   });
 
   it("lets the farmer retake a photo instead of using it", async () => {
@@ -103,13 +133,93 @@ describe("farmer diagnose flow", () => {
 
     await screen.findByRole("button", { name: "Upload Photo" });
 
-    const uploadInput = document.querySelector('input[type="file"]:not([capture])');
-    fireEvent.change(uploadInput, { target: { files: [makeLeafFile()] } });
-
+    selectLeafFile(makeLeafFile());
     await screen.findByRole("button", { name: "Retake" });
     fireEvent.click(screen.getByRole("button", { name: "Retake" }));
 
     expect(screen.getByRole("button", { name: "Take Photo" })).toBeInTheDocument();
     expect(screen.queryByText("Use Photo")).not.toBeInTheDocument();
+    expect(submitDiagnosisMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unsupported file type before uploading", async () => {
+    renderApp("/diagnose");
+    await screen.findByRole("button", { name: "Upload Photo" });
+
+    selectLeafFile(makeLeafFile({ type: "text/plain" }));
+
+    expect(
+      await screen.findByText(/That image type is not supported/),
+    ).toBeInTheDocument();
+    expect(submitDiagnosisMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Take Photo" })).toBeInTheDocument();
+  });
+
+  it("rejects an oversized photo before uploading", async () => {
+    renderApp("/diagnose");
+    await screen.findByRole("button", { name: "Upload Photo" });
+
+    selectLeafFile(makeLeafFile({ bytes: 10 * 1024 * 1024 + 1 }));
+
+    expect(
+      await screen.findByText(/The photo is too large/),
+    ).toBeInTheDocument();
+    expect(submitDiagnosisMock).not.toHaveBeenCalled();
+  });
+
+  it("shows an error card when the backend rejects the photo and lets the farmer retry", async () => {
+    submitDiagnosisMock.mockRejectedValue(
+      Object.assign(new Error("The photo could not be read. Please try a different photo."), {
+        status: 422,
+      }),
+    );
+    renderApp("/diagnose");
+
+    await screen.findByRole("button", { name: "Upload Photo" });
+    selectLeafFile(makeLeafFile());
+    await screen.findByRole("button", { name: "Use Photo" });
+    fireEvent.click(screen.getByRole("button", { name: "Use Photo" }));
+
+    expect(
+      await screen.findByText(/We could not analyze the photo/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("The photo could not be read. Please try a different photo."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText(/We could not analyze the photo/)).toBeInTheDocument();
+    expect(submitDiagnosisMock).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(screen.getByRole("button", { name: "Choose another photo" }));
+    expect(screen.getByRole("button", { name: "Take Photo" })).toBeInTheDocument();
+    expect(screen.queryByText("Use Photo")).not.toBeInTheDocument();
+  });
+
+  it("shows a network message when the request fails to reach the backend", async () => {
+    submitDiagnosisMock.mockRejectedValue(Object.assign(new Error(NETWORK_ERROR_MESSAGE), { networkError: true }));
+    renderApp("/diagnose");
+
+    await screen.findByRole("button", { name: "Upload Photo" });
+    selectLeafFile(makeLeafFile());
+    await screen.findByRole("button", { name: "Use Photo" });
+    fireEvent.click(screen.getByRole("button", { name: "Use Photo" }));
+
+    expect(await screen.findByText(NETWORK_ERROR_MESSAGE)).toBeInTheDocument();
+  });
+
+  it("signs the farmer out when the session has expired", async () => {
+    submitDiagnosisMock.mockRejectedValue(
+      Object.assign(new Error(SESSION_EXPIRED_MESSAGE), { status: 401, sessionExpired: true }),
+    );
+    renderApp("/diagnose");
+
+    await screen.findByRole("button", { name: "Upload Photo" });
+    selectLeafFile(makeLeafFile());
+    await screen.findByRole("button", { name: "Use Photo" });
+    fireEvent.click(screen.getByRole("button", { name: "Use Photo" }));
+
+    expect(await screen.findByRole("heading", { name: "Log in" })).toBeInTheDocument();
+    expect(signOutMock).toHaveBeenCalled();
   });
 });

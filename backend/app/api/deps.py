@@ -86,3 +86,24 @@ def require_farm_admin(ctx: UserContext = Depends(get_current_user)) -> UserCont
             detail="You do not have permission to perform this action.",
         )
     return ctx
+
+
+def require_farmer(ctx: UserContext = Depends(get_current_user)) -> UserContext:
+    """Reject callers that are not farmers on a farm (server-side enforcement)."""
+    if ctx.profile.role != Role.farmer or ctx.profile.farm_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only farmers on a farm can run a diagnosis.",
+        )
+    return ctx
+
+
+def get_diagnosis_service():
+    """Provide the shared (lazily loaded) inference service; overridable in tests.
+
+    The import stays inside the function so ``torch`` is never loaded merely by
+    importing the API application.
+    """
+    from app.services.ml.inference_service import get_inference_service
+
+    return get_inference_service()

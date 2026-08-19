@@ -43,7 +43,7 @@ model/weights/
 # Jupyter / local ML artifacts
 # ---------------------------------------------------------------
 .ipynb_checkpoints/
-data/
+/data/
 notebooks/
 report/
 *.log

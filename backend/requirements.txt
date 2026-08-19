@@ -5,3 +5,10 @@ python-dotenv==1.1.1
 httpx==0.28.1
 PyJWT==2.10.1
 email-validator==2.2.0
+# multipart form parsing (required for the file-upload diagnosis endpoint)
+python-multipart==0.0.20
+# ML inference dependencies (Phase 2 diagnosis endpoint).
+# Use CPU-only wheels for deployment; these are already installed in the
+# local development venv.
+torch==2.13.0
+torchvision==0.28.0
