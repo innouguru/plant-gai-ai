@@ -15,11 +15,11 @@ Farmer's phone / browser
 │  (Vercel)         │                      │  (Render)           │
 └───────────────────┘                      └──────────┬──────────┘
         │                                             │
-        │ images (Phase 2+)                           │ Supabase service keys
+        │ images                                │ Supabase service keys
         ▼                                             ▼
 ┌───────────────────┐                      ┌─────────────────────┐
 │  Supabase Storage │                      │  Supabase           │
-│  (Phase 2+)       │                      │  Auth + PostgreSQL  │
+│                   │                      │  Auth + PostgreSQL  │
 └───────────────────┘                      └─────────────────────┘
                                                       ▲
                                                       │
@@ -38,8 +38,9 @@ Farmer's phone / browser
 - **Routing**: `BrowserRouter` with public auth pages (`/login`, `/signup`,
   `/forgot-password`, `/reset-password`, `/complete-registration`,
   `/onboarding`) and role-based guarded routes for farmers (`/home`,
-  `/diagnose`, `/history` — the latter two are placeholders) and farm admins
-  (`/admin`, `/admin/farmers`, `/admin/diagnostics`, `/admin/messages`).
+  `/diagnose`, `/history`, `/history/:id`) and farm admins
+  (`/admin`, `/admin/farmers`, `/admin/diagnostics`,
+  `/admin/diagnostics/:id`, `/admin/report`, `/admin/messages`).
   Guards live in `src/routing/ProtectedRoutes.jsx`; the session + profile
   context lives in `src/auth/AuthContext.jsx`.
 - **Layout**: mobile-first shell (`AppLayout`) with a sticky header whose nav
@@ -62,27 +63,36 @@ Farmer's phone / browser
   on Supabase.
 - **Structure**:
   - `app/api/v1/routes/` — versioned route modules (`health`, `auth`,
-    `onboarding`, `farms`, `invitations`).
+    `onboarding`, `farms`, `invitations`, `diagnosis`, `messages`).
   - `app/api/errors.py` — global provider-error -> HTTP mapping.
-  - `app/core/` — configuration (pydantic-settings) and JWT verification.
+  - `app/core/` — configuration (pydantic-settings), JWT verification,
+    observability middleware, and rate limiting.
   - `app/schemas/` — request/response Pydantic models.
-  - `app/services/` — user, farm, and invitation domain logic.
+  - `app/services/` — user, farm, invitation, and diagnosis domain logic.
+  - `app/services/ml/` — ML inference service (ResNet-18, preprocessing).
 - **CORS**: configured from the `CORS_ORIGINS` env variable for non-proxy
   environments.
 
 ## Database
 
-Supabase PostgreSQL with Row Level Security. Phase 1 ships
-`supabase/migrations/0001_auth_foundation.sql`: `farms`, `profiles`,
-`invitations`, an auto-profile trigger for new auth users, RLS policies, and
-SECURITY DEFINER functions (`complete_admin_onboarding`,
-`update_profile_full_name`, `claim_pending_invitation`). See `database.md`.
+Supabase PostgreSQL with Row Level Security. Six migrations ship the schema:
+
+- `0001_auth_foundation.sql` — `farms`, `profiles`, `invitations`, auto-profile
+  trigger, RLS policies, SECURITY DEFINER functions.
+- `0002_diagnosis_history.sql` — `diagnoses` table with persistence.
+- `0003_farm_statistics.sql` — farm-level statistics RPC.
+- `0004_farm_diagnoses.sql` — farm diagnosis feed views.
+- `0005_authorized_diagnosis_detail.sql` — authorized diagnosis detail access.
+- `0006_messaging.sql` — `messages` table with inbox, send, and read-state.
+
+See `database.md` for full schema and RLS design.
 
 ## ML inference
 
-A service in `app/services/ml/` will eventually load the final ResNet-18
-checkpoint, preprocess a leaf photo, run prediction, and evaluate confidence.
-**Phase 0 contains only stubs** — nothing is loaded or predicted. Details in
+A service in `app/services/ml/` loads the final ResNet-18 checkpoint,
+preprocesses a leaf photo, runs prediction, and returns confidence scores.
+Model loading is lazy (on first request), inference runs on CPU, and the model
+weights file is gitignored. Preprocessing is frozen. Details in
 `ml-inference.md`.
 
 ## Environment configuration
@@ -92,7 +102,7 @@ checkpoint, preprocess a leaf photo, run prediction, and evaluate confidence.
 - The backend reads env vars (plus `.env`) via pydantic-settings.
 - The frontend reads `VITE_`-prefixed env vars via Vite.
 
-## Deployment targets (future)
+## Deployment targets
 
 - Frontend: Vercel Free.
 - Backend: Render Free.

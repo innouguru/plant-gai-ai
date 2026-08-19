@@ -33,7 +33,7 @@ function ForgotPasswordPage() {
     <section className="auth-shell" aria-label="Reset password">
       <div className="auth-card">
         <Logo />
-        <h2>Reset your password</h2>
+        <h1>Reset your password</h1>
 
         {sent ? (
           <p className="form-success form-message" role="status">

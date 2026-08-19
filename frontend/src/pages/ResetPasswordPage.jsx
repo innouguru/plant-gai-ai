@@ -45,7 +45,7 @@ function ResetPasswordPage() {
       <section className="auth-shell" aria-label="Invalid reset link">
         <div className="auth-card">
           <Logo />
-          <h2>Invalid link</h2>
+          <h1>Invalid link</h1>
           <p className="auth-subtitle">
             This password reset link is invalid or has expired.{" "}
             <Link to="/forgot-password">Request a new one</Link>.
@@ -60,7 +60,7 @@ function ResetPasswordPage() {
       <section className="auth-shell" aria-label="Password updated">
         <div className="auth-card">
           <Logo />
-          <h2>Password updated</h2>
+          <h1>Password updated</h1>
           <p className="form-success form-message" role="status">
             Your password has been updated. <Link to="/login">Log in</Link> with your new
             password.
@@ -74,7 +74,7 @@ function ResetPasswordPage() {
     <section className="auth-shell" aria-label="Set new password">
       <div className="auth-card">
         <Logo />
-        <h2>Set a new password</h2>
+          <h1>Set a new password</h1>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <FormField id="password" label="New password">

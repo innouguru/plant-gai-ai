@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router-dom";
+import { HomeRedirect, ProtectedRoute, RequireRole } from "./routing/ProtectedRoutes";
 import LoginPage from "./pages/LoginPage";
 import AdminSignupPage from "./pages/AdminSignupPage";
 import OnboardingPage from "./pages/OnboardingPage";
@@ -17,7 +18,6 @@ import DiagnosticsPage from "./pages/admin/DiagnosticsPage";
 import AdminDiagnosisDetailPage from "./pages/admin/AdminDiagnosisDetailPage";
 import FarmReportPage from "./pages/admin/FarmReportPage";
 import MessagesPage from "./pages/admin/MessagesPage";
-import { HomeRedirect, ProtectedRoute, RequireRole } from "./routing/ProtectedRoutes";
 
 function App() {
   return (

@@ -70,7 +70,7 @@ function MessagesPage() {
   const [notice, setNotice] = useState(false);
 
   useEffect(() => {
-    if (isPreview || !session) return;
+    if (isPreview || !session?.access_token) return;
 
     let active = true;
     setLoading(true);
@@ -89,7 +89,7 @@ function MessagesPage() {
     return () => {
       active = false;
     };
-  }, [session, isPreview]);
+  }, [session?.access_token, isPreview]);
 
   const conversations = useMemo(
     () => (isPreview ? devConversations : buildConversations(messages, profile?.id)),
@@ -106,7 +106,7 @@ function MessagesPage() {
     : conversations.find((item) => item.id === selectedId) ?? null;
 
   useEffect(() => {
-    if (isPreview || !conversation || !session) return;
+    if (isPreview || !conversation || !session?.access_token) return;
     const unreadMessages = conversation.messages.filter(
       (message) => message.from === "farmer" && !message.readAt,
     );
@@ -119,7 +119,7 @@ function MessagesPage() {
         })
         .catch(() => {});
     });
-  }, [conversation, isPreview, session]);
+  }, [conversation, isPreview, session?.access_token]);
 
   async function handleSend(event) {
     event.preventDefault();

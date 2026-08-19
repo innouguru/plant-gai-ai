@@ -1,4 +1,6 @@
-function Avatar({ name, size = "" }) {
+import React from "react";
+
+const Avatar = React.memo(function Avatar({ name, size = "" }) {
   const initials = (name || "?")
     .trim()
     .split(/\s+/)
@@ -14,6 +16,6 @@ function Avatar({ name, size = "" }) {
       {initials || "?"}
     </span>
   );
-}
+});
 
 export default Avatar;

@@ -38,26 +38,19 @@ The application uses the final, already-trained model
 | Test accuracy | 88.04% |
 | Status | FINAL — never retrain |
 
-## Non-goals (Phase 0)
+## Non-goals
 
-Phase 0 delivers project foundation only. It explicitly does **not** include:
+The following are explicitly not part of this application:
 
-- Login / registration
-- Diagnosis or camera functionality
-- Diagnosis history
-- Farm-level statistics
-- Messaging
-- Admin dashboards
-- Production database schema
-- Model loading or real inference
+- Offline-first local storage of diagnosis data.
+- Third-party API integrations beyond Supabase.
+- Multi-tenant farm management (each farm is an independent unit).
 
-These are covered in later phases (see `development-phases.md`).
+See `development-phases.md` for the implementation roadmap.
 
-## Current phase (Phase 0) scope
+## Implementation status
 
-- React + Vite frontend shell with a placeholder dashboard.
-- FastAPI backend with a versioned health endpoint (`GET /api/v1/health`).
-- Environment configuration and secret-safe Git setup.
-- Testing infrastructure (pytest + Vitest).
-- Supabase and ML inference scaffolding only.
-- Documentation and agent guidance (AGENTS.md).
+All planned phases (0–4) are complete. The application includes
+authentication, diagnosis, farm management, messaging, observability,
+rate limiting, and accessibility features. See
+`development-phases.md` for the full phase breakdown.

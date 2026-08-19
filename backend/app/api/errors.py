@@ -3,7 +3,7 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from app.core.observability import log_provider_error
+from app.core.observability import log_provider_error, record_error_event
 from app.core.rate_limit import RateLimitExceeded, RateLimitUnavailable
 from app.db.errors import ProviderError
 
@@ -31,8 +31,8 @@ _BACKEND_DEFAULT = "An external service error occurred. Please try again."
 
 def provider_error_to_response(request: Request, exc: ProviderError) -> JSONResponse:
     """Global handler that converts provider errors into safe user messages."""
-    log_provider_error(request, exc.code)
     status_code, detail = _STATUS_BY_CODE.get(exc.code, (502, _BACKEND_DEFAULT))
+    log_provider_error(request, exc.code, status_code)
     return JSONResponse(
         status_code=status_code,
         content={"detail": detail},
@@ -41,6 +41,7 @@ def provider_error_to_response(request: Request, exc: ProviderError) -> JSONResp
 
 
 def rate_limit_exceeded_to_response(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    record_error_event(request, "rate_limit_exceeded", status_code=429)
     return JSONResponse(
         status_code=429,
         content={"detail": "Too many requests. Please try again later."},
@@ -52,6 +53,7 @@ def rate_limit_exceeded_to_response(request: Request, exc: RateLimitExceeded) ->
 
 
 def rate_limit_unavailable_to_response(request: Request, exc: RateLimitUnavailable) -> JSONResponse:
+    record_error_event(request, "rate_limit_unavailable", status_code=503)
     return JSONResponse(
         status_code=503,
         content={"detail": "Rate limiting is temporarily unavailable. Please try again."},

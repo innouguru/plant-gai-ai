@@ -1,10 +1,11 @@
+import React from "react";
 import { Link } from "react-router-dom";
 import { getClassInfo } from "../../data/crops";
 import { formatRelativeTime } from "../../data/dates";
 import CropThumb from "./CropThumb";
 import StatusBadge from "./StatusBadge";
 
-function DiagnosisCard({
+const DiagnosisCard = React.memo(function DiagnosisCard({
   className = "Cassava healthy",
   confidence,
   scannedAt,
@@ -43,6 +44,6 @@ function DiagnosisCard({
     );
   }
   return <article className="diagnosis-card">{body}</article>;
-}
+});
 
 export default DiagnosisCard;

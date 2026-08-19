@@ -30,7 +30,7 @@ function FarmersPage() {
   const [inviteSuccess, setInviteSuccess] = useState(null);
 
   useEffect(() => {
-    if (isPreview || !farmId || !session) return;
+    if (isPreview || !farmId || !session?.access_token) return;
 
     let active = true;
     setLoadingMembers(true);
@@ -50,7 +50,7 @@ function FarmersPage() {
     return () => {
       active = false;
     };
-  }, [farmId, session, isPreview]);
+  }, [farmId, session?.access_token, isPreview]);
 
   async function handleInvite(event) {
     event.preventDefault();

@@ -1,15 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 import Icon from "./Icon";
 
 function Modal({ open, title, onClose, children }) {
+  const titleId = useId();
+  const closeButtonRef = useRef(null);
+  const previousActiveElement = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return undefined;
+    previousActiveElement.current = document.activeElement;
+    closeButtonRef.current?.focus();
     function onKeyDown(event) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
     }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      previousActiveElement.current?.focus?.();
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -19,15 +30,16 @@ function Modal({ open, title, onClose, children }) {
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button
             type="button"
             className="modal-close"
             aria-label="Close dialog"
+            ref={closeButtonRef}
             onClick={onClose}
           >
             <Icon name="close" size={22} />

@@ -51,10 +51,14 @@ project; backend and frontend test suites pass.
 - Frontend messaging screen using the real API in authenticated mode and local
   development preview data in preview mode.
 
-## Phase 4 — Administration and polish (planned)
+## Phase 4 — Administration and polish (done)
 
-- Monitoring, rate limits, error tracking.
-- Accessibility and performance hardening.
+- Monitoring and request-ID observability.
+- Rate limiting with configurable failure modes (Redis, in-memory, safe fallback).
+- Sanitized error logging and safe error responses.
+- Accessibility: ARIA roles, focus management, keyboard navigation.
+- Performance: React.memo on leaf components, useEffect dependency cleanup,
+  dead-code removal.
 
 ## Cross-cutting rules
 

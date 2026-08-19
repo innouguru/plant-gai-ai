@@ -24,14 +24,14 @@ function FarmerHomePage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isPreview || !session) return;
+    if (isPreview || !session?.access_token) return;
     let active = true;
     fetchHistory(session.access_token)
       .then((items) => { if (active) setRecent(items[0] ?? null); })
       .catch((err) => { if (active) setError(err?.message ?? "Could not load your recent diagnosis."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [session, isPreview]);
+  }, [session?.access_token, isPreview]);
 
   return (
     <div className="farmer-home">

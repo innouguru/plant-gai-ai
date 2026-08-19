@@ -20,6 +20,7 @@ function FarmerShell() {
 
   return (
     <div className="farmer-shell">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="farmer-header">
         <Link to="/home" className="brand-link" aria-label="Plant-GAI-AI home">
           <Logo compact />
@@ -27,7 +28,7 @@ function FarmerShell() {
         <Avatar name={displayName} />
       </header>
 
-      <main className="farmer-content">
+      <main id="main-content" className="farmer-content" tabIndex={-1}>
         <DevPreviewBanner />
         <Outlet />
       </main>

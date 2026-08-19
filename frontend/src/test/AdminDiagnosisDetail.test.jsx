@@ -56,7 +56,7 @@ beforeEach(() => {
 describe("admin diagnosis detail", () => {
   it("requests the selected id and renders real fields and farmer identity", async () => {
     renderDetail();
-    expect(await screen.findByText("Ada Farmer")).toBeInTheDocument();
+    expect(await screen.findByText("Ada Farmer", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText("Cassava Mosaic Disease")).toBeInTheDocument();
     expect(screen.getByText(/88% Confidence/)).toBeInTheDocument();
     expect(fetchDiagnosisMock).toHaveBeenCalledWith("diagnosis-1", "admin-token");

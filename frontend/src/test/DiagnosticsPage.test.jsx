@@ -93,7 +93,7 @@ describe("admin diagnostics", () => {
   it("requests the authenticated admin farm and renders real diagnosis rows", async () => {
     renderApp();
 
-    expect(await screen.findByText("Ada Farmer")).toBeInTheDocument();
+    expect(await screen.findByText("Ada Farmer", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText("Bola Farmer")).toBeInTheDocument();
     expect(screen.getByText("Cassava Mosaic Disease")).toBeInTheDocument();
     expect(screen.getByText("88%")).toBeInTheDocument();

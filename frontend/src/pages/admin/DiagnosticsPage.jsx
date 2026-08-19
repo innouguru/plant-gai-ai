@@ -23,7 +23,7 @@ function DiagnosticsPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isPreview || !farmId || !session) return;
+    if (isPreview || !farmId || !session?.access_token) return;
 
     let active = true;
     setLoading(true);
@@ -43,7 +43,7 @@ function DiagnosticsPage() {
     return () => {
       active = false;
     };
-  }, [farmId, session, isPreview]);
+  }, [farmId, session?.access_token, isPreview]);
 
   const rows = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -106,12 +106,12 @@ function DiagnosticsPage() {
           <table className="diag-table">
             <thead>
               <tr>
-                <th>Farmer</th>
-                <th>Crop</th>
-                <th>Diagnosis</th>
-                <th>Status</th>
-                <th>Confidence</th>
-                <th>Date</th>
+                <th scope="col">Farmer</th>
+                <th scope="col">Crop</th>
+                <th scope="col">Diagnosis</th>
+                <th scope="col">Status</th>
+                <th scope="col">Confidence</th>
+                <th scope="col">Date</th>
               </tr>
             </thead>
             <tbody>

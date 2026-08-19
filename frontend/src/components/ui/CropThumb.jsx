@@ -1,4 +1,6 @@
-function CropThumb({ crop, size = "" }) {
+import React from "react";
+
+const CropThumb = React.memo(function CropThumb({ crop, size = "" }) {
   const normalized = String(crop || "").toLowerCase();
   return (
     <span
@@ -10,6 +12,6 @@ function CropThumb({ crop, size = "" }) {
       {crop ? crop.slice(0, 2).toUpperCase() : "PL"}
     </span>
   );
-}
+});
 
 export default CropThumb;

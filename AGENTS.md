@@ -14,20 +14,17 @@ writing or modifying any code.
 
 The project is developed in **controlled phases** (see `docs/development-phases.md`).
 
-- Phases 0 through 3 are complete: foundation, accounts and farms, diagnosis,
-  and farm features/messaging.
-- Phase 4 is planned and covers monitoring, rate limits, error tracking,
-  accessibility, and performance hardening.
+- Phases 0 through 4 are complete: foundation, accounts and farms, diagnosis,
+  farm features/messaging, and administration and polish (observability, rate
+  limits, error tracking, accessibility, and performance hardening).
 
 An agent must implement **only the requested phase**. Do not start a later phase
 because it seems obvious or convenient.
 
 ## 2. Scope discipline
 
-Implement exactly the work described in the current task. Do not add future
-Phase 4 functionality unless it is explicitly requested. Preserve the
-completed authentication, diagnosis, farm-feature, and messaging behavior
-unless a task explicitly requests a change.
+Implement exactly the work described in the current task. Preserve completed
+features unless a task explicitly requests a change.
 
 ## 3. No unapproved redesign
 
@@ -95,9 +92,8 @@ compatible where practical. Avoid unnecessary breaking changes.
 
 ## 12. No premature implementation
 
-Future Phase 4 functionality must not be implemented prematurely. Working but
-unrequested features are not acceptable. Existing completed features should be
-preserved rather than replaced with placeholders.
+Working but unrequested features are not acceptable. Existing completed
+features should be preserved rather than replaced with placeholders.
 
 ---
 

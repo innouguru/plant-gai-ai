@@ -1,8 +1,8 @@
 import Icon from "./Icon";
 
-function StateScreen({ icon = "leaf", title, children, action }) {
+function StateScreen({ icon = "leaf", title, children, action, role = "status", live = "polite" }) {
   return (
-    <div className="state-screen" role="status">
+    <div className="state-screen" role={role} aria-label={title} aria-live={live} aria-atomic="true">
       <Icon name={icon} size={40} />
       <h3 className="state-title">{title}</h3>
       {children && <div>{children}</div>}
@@ -30,7 +30,7 @@ export function EmptyState({ title = "Nothing here yet", message, children }) {
 
 export function ErrorState({ message, onRetry, children }) {
   return (
-    <StateScreen icon="alert" title="Something went wrong">
+    <StateScreen icon="alert" title="Something went wrong" role="alert" live="assertive">
       <p>{message}</p>
       {onRetry && (
         <button type="button" className="btn btn-outline btn-sm" onClick={onRetry}>

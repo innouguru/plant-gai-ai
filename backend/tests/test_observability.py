@@ -33,6 +33,7 @@ def test_request_id_is_generated_and_returned(client, caplog) -> None:
     assert record.path == "/api/v1/health"
     assert record.status_code == 200
     assert record.duration_ms >= 0
+    assert not [record for record in caplog.records if record.name == "app.observability" and record.message == "error_event"]
 
 
 def test_supplied_request_id_is_preserved(client) -> None:
@@ -70,6 +71,8 @@ def test_provider_errors_keep_mapping_and_log_safely(client, caplog) -> None:
     record = next(record for record in caplog.records if record.message == "provider_error")
     assert record.request_id == "provider-request"
     assert record.error_code == "message_forbidden"
+    assert record.event_type == "provider_error"
+    assert record.status_code == 403
     assert "provider details must stay private" not in caplog.text
 
 
@@ -87,6 +90,8 @@ def test_unexpected_errors_are_logged_without_exposing_details(client, caplog) -
     assert response.headers["X-Request-ID"] == "unexpected-request"
     record = next(record for record in caplog.records if record.message == "unexpected_error")
     assert record.exception_type == "RuntimeError"
+    assert record.event_type == "unexpected_error"
+    assert record.status_code == 500
     assert "test_observability.py" in record.traceback_locations
     assert "password-secret" not in caplog.text
     assert "jwt-secret" not in caplog.text

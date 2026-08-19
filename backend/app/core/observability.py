@@ -59,16 +59,41 @@ def get_request_id(request: Request) -> str:
     return getattr(request.state, "request_id", "unknown")
 
 
-def log_provider_error(request: Request, code: str) -> None:
+def record_error_event(
+    request: Request,
+    event_type: str,
+    *,
+    status_code: int,
+    level: int = logging.ERROR,
+    error_code: str | None = None,
+    exception_type: str | None = None,
+    traceback_locations: str | None = None,
+) -> None:
+    """Record a structured error event without exception text or request data."""
+    extra = {
+        "request_id": get_request_id(request),
+        "method": request.method,
+        "path": request.url.path,
+        "status_code": status_code,
+        "event_type": event_type,
+    }
+    if error_code is not None:
+        extra["error_code"] = error_code
+    if exception_type is not None:
+        extra["exception_type"] = exception_type
+    if traceback_locations is not None:
+        extra["traceback_locations"] = traceback_locations
+    logger.log(level, event_type, extra=extra)
+
+
+def log_provider_error(request: Request, code: str, status_code: int) -> None:
     """Log only a safe provider error code and request context."""
-    logger.warning(
+    record_error_event(
+        request,
         "provider_error",
-        extra={
-            "request_id": get_request_id(request),
-            "method": request.method,
-            "path": request.url.path,
-            "error_code": code,
-        },
+        status_code=status_code,
+        level=logging.WARNING,
+        error_code=code,
     )
 
 
@@ -78,15 +103,12 @@ def unexpected_error_to_response(request: Request, exc: Exception) -> JSONRespon
         f'File "{frame.filename}", line {frame.lineno}, in {frame.name}'
         for frame in traceback.extract_tb(exc.__traceback__)
     )
-    logger.error(
+    record_error_event(
+        request,
         "unexpected_error",
-        extra={
-            "request_id": get_request_id(request),
-            "method": request.method,
-            "path": request.url.path,
-            "exception_type": type(exc).__name__,
-            "traceback_locations": traceback_locations,
-        },
+        status_code=500,
+        exception_type=type(exc).__name__,
+        traceback_locations=traceback_locations,
     )
     return JSONResponse(
         status_code=500,

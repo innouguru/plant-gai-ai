@@ -40,7 +40,7 @@ function LoginPage() {
     <section className="auth-shell" aria-label="Log in">
       <div className="auth-card">
         <Logo />
-        <h2>Log in</h2>
+        <h1>Log in</h1>
         <p className="auth-subtitle">Log in to keep caring for your plants.</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>

@@ -1,4 +1,6 @@
-function StatCard({ label, value, trend, trendTone = "muted" }) {
+import React from "react";
+
+const StatCard = React.memo(function StatCard({ label, value, trend, trendTone = "muted" }) {
   return (
     <div className="stat-card">
       <p className="stat-label">{label}</p>
@@ -6,6 +8,6 @@ function StatCard({ label, value, trend, trendTone = "muted" }) {
       {trend && <p className={`stat-trend stat-trend-${trendTone}`}>{trend}</p>}
     </div>
   );
-}
+});
 
 export default StatCard;

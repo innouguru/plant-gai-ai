@@ -30,6 +30,7 @@ function AdminShell() {
 
   return (
     <div className="admin-shell">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <aside className="admin-sidebar">
         <div className="admin-brand">
           <Logo inverse />
@@ -64,7 +65,7 @@ function AdminShell() {
         </div>
       </aside>
 
-      <main className="admin-main">
+      <main id="main-content" className="admin-main" tabIndex={-1}>
         <div className="admin-content">
           <DevPreviewBanner />
           <Outlet />

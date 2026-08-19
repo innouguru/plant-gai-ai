@@ -22,7 +22,7 @@ function FarmReportPage() {
   const [reportDate, setReportDate] = useState(new Date().toISOString());
 
   useEffect(() => {
-    if (isPreview || !farmId || !session) return;
+    if (isPreview || !farmId || !session?.access_token) return;
     let active = true;
     setLoading(true);
     setError(null);
@@ -31,7 +31,7 @@ function FarmReportPage() {
       .catch((err) => { if (active) setError(err?.message ?? "Could not load farm statistics."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [farmId, session, isPreview]);
+  }, [farmId, session?.access_token, isPreview]);
 
   if (!isPreview && !farmId) return null;
 

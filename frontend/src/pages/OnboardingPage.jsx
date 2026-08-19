@@ -46,7 +46,7 @@ function OnboardingPage() {
     <section className="auth-shell" aria-label="Set up your farm">
       <div className="auth-card">
         <Logo />
-        <h2>Welcome to Plant-GAI-AI</h2>
+        <h1>Welcome to Plant-GAI-AI</h1>
         <p className="auth-subtitle">Create a farm to finish setting up your account.</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>

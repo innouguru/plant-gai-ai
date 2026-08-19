@@ -37,7 +37,7 @@ function CompleteRegistrationPage() {
       <section className="auth-shell" aria-label="Invalid invitation">
         <div className="auth-card">
           <Logo />
-          <h2>Invitation not found</h2>
+          <h1>Invitation not found</h1>
           <p className="auth-subtitle">
             This invitation link is invalid or has expired. Ask the farm admin to send a new
             invitation.
@@ -96,7 +96,7 @@ function CompleteRegistrationPage() {
     <section className="auth-shell" aria-label="Complete registration">
       <div className="auth-card">
         <Logo />
-        <h2>Finish creating your account</h2>
+        <h1>Finish creating your account</h1>
         <p className="auth-subtitle">
           You've been invited to join a farm. Set your password to get started.
         </p>

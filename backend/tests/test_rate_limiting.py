@@ -88,17 +88,22 @@ def test_separate_identities_have_separate_counters():
     asyncio.run(run())
 
 
-def test_unauthenticated_requests_use_ip_fallback_and_429(limited_client):
+def test_unauthenticated_requests_use_ip_fallback_and_429(limited_client, caplog):
     client, _ = limited_client
     for _ in range(20):
         assert client.get("/api/v1/auth/me").status_code == 401
 
-    response = client.get("/api/v1/auth/me", headers={"X-Request-ID": "rate-limit-request"})
+    with caplog.at_level("ERROR", logger="app.observability"):
+        response = client.get("/api/v1/auth/me", headers={"X-Request-ID": "rate-limit-request"})
 
     assert response.status_code == 429
     assert response.json() == {"detail": "Too many requests. Please try again later."}
     assert int(response.headers["Retry-After"]) >= 1
     assert response.headers["X-Request-ID"] == "rate-limit-request"
+    event = next(record for record in caplog.records if record.message == "rate_limit_exceeded")
+    assert event.event_type == "rate_limit_exceeded"
+    assert event.status_code == 429
+    assert event.request_id == "rate-limit-request"
 
 
 def test_invalid_authentication_uses_ip_fallback(limited_client):
@@ -196,21 +201,26 @@ def test_production_rejects_process_local_storage(monkeypatch):
         Settings(app_env="production", rate_limit_storage="memory")
 
 
-def test_redis_failure_closed_returns_safe_503(client, provider, make_token):
+def test_redis_failure_closed_returns_safe_503(client, provider, make_token, caplog):
     user = provider.seed_user(email="rate-limit@example.com", full_name="Rate Limit", role=Role.farmer)
     token = make_token(user.id, user.email)
     app.dependency_overrides[get_rate_limiter] = lambda: RateLimiter(FailingStore(), fail_mode="closed")
     try:
-        response = client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {token}", "X-Request-ID": "redis-down"},
-        )
+        with caplog.at_level("ERROR", logger="app.observability"):
+            response = client.get(
+                "/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {token}", "X-Request-ID": "redis-down"},
+            )
     finally:
         app.dependency_overrides.pop(get_rate_limiter, None)
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Rate limiting is temporarily unavailable. Please try again."}
     assert response.headers["X-Request-ID"] == "redis-down"
+    event = next(record for record in caplog.records if record.message == "rate_limit_unavailable")
+    assert event.event_type == "rate_limit_unavailable"
+    assert event.status_code == 503
+    assert event.request_id == "redis-down"
 
 
 def test_rate_limit_key_parts_are_bounded_and_normalized():

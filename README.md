@@ -3,9 +3,10 @@
 Mobile-first web application that helps farmers diagnose plant diseases from
 leaf photos using an already-trained PyTorch ResNet-18 model.
 
-**Current status: Phase 3 — Farm features and messaging complete.** Accounts,
-diagnosis, farm statistics, farm diagnosis views, and messaging are implemented;
-administration and operational polish remain planned. See
+**Current status: Phase 4 — Administration and polish complete.** All phases
+(0–4) are implemented: foundation, accounts and farms, diagnosis, farm
+features and messaging, and administration and polish (observability, rate
+limits, error tracking, accessibility, and performance hardening). See
 [`docs/development-phases.md`](docs/development-phases.md) for the roadmap.
 
 ## Repository structure

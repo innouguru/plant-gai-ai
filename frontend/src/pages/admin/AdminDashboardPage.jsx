@@ -23,7 +23,7 @@ function AdminDashboardPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isPreview || !farmId || !session) return;
+    if (isPreview || !farmId || !session?.access_token) return;
 
     let active = true;
     setLoading(true);
@@ -43,7 +43,7 @@ function AdminDashboardPage() {
     return () => {
       active = false;
     };
-  }, [farmId, session, isPreview]);
+  }, [farmId, session?.access_token, isPreview]);
 
   if (!isPreview && !farmId) return null;
 

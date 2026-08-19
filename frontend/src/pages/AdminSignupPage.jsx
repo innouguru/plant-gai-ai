@@ -54,7 +54,7 @@ function AdminSignupPage() {
     <section className="auth-shell" aria-label="Create an account">
       <div className="auth-card">
         <Logo />
-        <h2>Create an account</h2>
+        <h1>Create an account</h1>
         <p className="auth-subtitle">Set up your farm to get started with Plant-GAI-AI.</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
