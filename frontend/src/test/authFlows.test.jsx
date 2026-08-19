@@ -126,7 +126,7 @@ describe("auth flows", () => {
     fireEvent.click(screen.getByRole("button", { name: "Log in" }));
 
     expect(
-      await screen.findByRole("heading", { name: /Welcome, Ada Farmer/ }),
+      await screen.findByRole("heading", { name: /A kuabo, Ada!/ }),
     ).toBeInTheDocument();
   });
 
@@ -163,7 +163,7 @@ describe("auth flows", () => {
     type("Farm name", "Green Acres");
     fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
-    expect(await screen.findByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Green Acres" })).toBeInTheDocument();
   });
 
   it("completes registration for an invited farmer", async () => {
@@ -187,7 +187,7 @@ describe("auth flows", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(
-      await screen.findByRole("heading", { name: /Welcome, Bella Farmer/ }),
+      await screen.findByRole("heading", { name: /A kuabo, Bella!/ }),
     ).toBeInTheDocument();
   });
 

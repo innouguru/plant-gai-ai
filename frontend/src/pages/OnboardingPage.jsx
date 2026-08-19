@@ -3,6 +3,9 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { completeOnboarding } from "../api/onboarding";
 import { LOADING_TEXT } from "../routing/ProtectedRoutes";
+import Logo from "../components/ui/Logo";
+import Button from "../components/ui/Button";
+import FormField from "../components/ui/FormField";
 
 function OnboardingPage() {
   const { status, profile, session, refreshProfile } = useAuth();
@@ -42,30 +45,32 @@ function OnboardingPage() {
   return (
     <section className="auth-shell" aria-label="Set up your farm">
       <div className="auth-card">
+        <Logo />
         <h2>Welcome to Plant-GAI-AI</h2>
         <p className="auth-subtitle">Create a farm to finish setting up your account.</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label htmlFor="farmName">Farm name</label>
-          <input
-            id="farmName"
-            type="text"
-            required
-            minLength={2}
-            maxLength={120}
-            value={farmName}
-            onChange={(event) => setFarmName(event.target.value)}
-          />
+          <FormField id="farmName" label="Farm name">
+            <input
+              id="farmName"
+              type="text"
+              required
+              minLength={2}
+              maxLength={120}
+              value={farmName}
+              onChange={(event) => setFarmName(event.target.value)}
+            />
+          </FormField>
 
           {error && (
-            <p className="form-error" role="alert">
+            <p className="form-error form-message" role="alert">
               {error}
             </p>
           )}
 
-          <button type="submit" disabled={submitting}>
+          <Button type="submit" variant="primary" block disabled={submitting}>
             {submitting ? "Creating farm..." : "Create farm"}
-          </button>
+          </Button>
         </form>
       </div>
     </section>

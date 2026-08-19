@@ -5,6 +5,9 @@ import { useAuth } from "../auth/AuthContext";
 import { getHashParams } from "../auth/hashParams";
 import { acceptInvitation } from "../api/invitations";
 import { LOADING_TEXT } from "../routing/ProtectedRoutes";
+import Logo from "../components/ui/Logo";
+import Button from "../components/ui/Button";
+import FormField from "../components/ui/FormField";
 
 function CompleteRegistrationPage() {
   const { status, session, profile, refreshProfile } = useAuth();
@@ -33,6 +36,7 @@ function CompleteRegistrationPage() {
     return (
       <section className="auth-shell" aria-label="Invalid invitation">
         <div className="auth-card">
+          <Logo />
           <h2>Invitation not found</h2>
           <p className="auth-subtitle">
             This invitation link is invalid or has expired. Ask the farm admin to send a new
@@ -91,52 +95,56 @@ function CompleteRegistrationPage() {
   return (
     <section className="auth-shell" aria-label="Complete registration">
       <div className="auth-card">
+        <Logo />
         <h2>Finish creating your account</h2>
         <p className="auth-subtitle">
           You've been invited to join a farm. Set your password to get started.
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label htmlFor="fullName">Full name</label>
-          <input
-            id="fullName"
-            type="text"
-            required
-            maxLength={120}
-            value={fullName}
-            onChange={(event) => setFullName(event.target.value)}
-          />
+          <FormField id="fullName" label="Full name">
+            <input
+              id="fullName"
+              type="text"
+              required
+              maxLength={120}
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+            />
+          </FormField>
 
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            required
-            autoComplete="new-password"
-            minLength={6}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
+          <FormField id="password" label="Password">
+            <input
+              id="password"
+              type="password"
+              required
+              autoComplete="new-password"
+              minLength={6}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </FormField>
 
-          <label htmlFor="confirmPassword">Confirm password</label>
-          <input
-            id="confirmPassword"
-            type="password"
-            required
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-          />
+          <FormField id="confirmPassword" label="Confirm password">
+            <input
+              id="confirmPassword"
+              type="password"
+              required
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+            />
+          </FormField>
 
           {error && (
-            <p className="form-error" role="alert">
+            <p className="form-error form-message" role="alert">
               {error}
             </p>
           )}
 
-          <button type="submit" disabled={submitting}>
+          <Button type="submit" variant="primary" block disabled={submitting}>
             {submitting ? "Creating account..." : "Create account"}
-          </button>
+          </Button>
         </form>
       </div>
     </section>

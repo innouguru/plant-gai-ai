@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { useDevPreview } from "../preview/devPreview";
 
 export const LOADING_TEXT = "Checking your account...";
 
@@ -9,9 +10,9 @@ function LoadingScreen() {
 
 function ProfileLoadError({ onRetry }) {
   return (
-    <div className="profile-error-card" role="alert">
-      <p>We could not load your account details.</p>
-      <button type="button" onClick={onRetry}>
+    <div className="state-screen" role="alert">
+      <h3 className="state-title">We could not load your account details.</h3>
+      <button type="button" className="btn btn-outline" onClick={onRetry}>
         Try again
       </button>
     </div>
@@ -20,6 +21,13 @@ function ProfileLoadError({ onRetry }) {
 
 export function ProtectedRoute() {
   const { status, profile, session, refreshProfile } = useAuth();
+  const { previewRole } = useDevPreview();
+
+  // Development-only UI preview: admits the previewing role without requiring
+  // a Supabase session. No-op in production builds (previewRole is always null).
+  if (previewRole) {
+    return <Outlet />;
+  }
 
   if (status === "loading") {
     return <LoadingScreen />;
@@ -42,8 +50,12 @@ export function ProtectedRoute() {
 
 export function RequireRole({ role }) {
   const { profile } = useAuth();
+  const { previewRole } = useDevPreview();
 
-  if (!profile || profile.role !== role) {
+  // Dev-only preview role, otherwise the real profile role.
+  const effectiveRole = previewRole ?? profile?.role;
+
+  if (!effectiveRole || effectiveRole !== role) {
     return <Navigate to="/" replace />;
   }
 
@@ -52,6 +64,15 @@ export function RequireRole({ role }) {
 
 export function HomeRedirect() {
   const { status, profile } = useAuth();
+  const { previewRole } = useDevPreview();
+
+  if (previewRole === "farm_admin") {
+    return <Navigate to="/admin" replace />;
+  }
+
+  if (previewRole === "farmer") {
+    return <Navigate to="/home" replace />;
+  }
 
   if (status === "loading") {
     return <LoadingScreen />;

@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../auth/supabase";
 import { useAuth } from "../auth/AuthContext";
 import { completeOnboarding } from "../api/onboarding";
+import Logo from "../components/ui/Logo";
+import Button from "../components/ui/Button";
+import FormField from "../components/ui/FormField";
 
 function AdminSignupPage() {
   const { refreshProfile } = useAuth();
@@ -50,53 +53,55 @@ function AdminSignupPage() {
   return (
     <section className="auth-shell" aria-label="Create an account">
       <div className="auth-card">
+        <Logo />
         <h2>Create an account</h2>
-        <p className="auth-subtitle">
-          Set up your farm to get started with Plant-GAI-AI.
-        </p>
+        <p className="auth-subtitle">Set up your farm to get started with Plant-GAI-AI.</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
+          <FormField id="email" label="Email">
+            <input
+              id="email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </FormField>
 
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            required
-            autoComplete="new-password"
-            minLength={6}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
+          <FormField id="password" label="Password">
+            <input
+              id="password"
+              type="password"
+              required
+              autoComplete="new-password"
+              minLength={6}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </FormField>
 
-          <label htmlFor="farmName">Farm name</label>
-          <input
-            id="farmName"
-            type="text"
-            required
-            minLength={2}
-            maxLength={120}
-            value={farmName}
-            onChange={(event) => setFarmName(event.target.value)}
-          />
+          <FormField id="farmName" label="Farm name">
+            <input
+              id="farmName"
+              type="text"
+              required
+              minLength={2}
+              maxLength={120}
+              value={farmName}
+              onChange={(event) => setFarmName(event.target.value)}
+            />
+          </FormField>
 
           {error && (
-            <p className="form-error" role="alert">
+            <p className="form-error form-message" role="alert">
               {error}
             </p>
           )}
 
-          <button type="submit" disabled={submitting}>
+          <Button type="submit" variant="primary" block disabled={submitting}>
             {submitting ? "Creating account..." : "Create account"}
-          </button>
+          </Button>
         </form>
 
         <p className="auth-links">

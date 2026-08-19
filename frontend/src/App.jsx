@@ -9,10 +9,13 @@ import FarmerShell from "./pages/FarmerShell";
 import FarmerHomePage from "./pages/farmer/FarmerHomePage";
 import DiagnosePage from "./pages/farmer/DiagnosePage";
 import HistoryPage from "./pages/farmer/HistoryPage";
+import FarmerDiagnosisDetailPage from "./pages/farmer/FarmerDiagnosisDetailPage";
 import AdminShell from "./pages/AdminShell";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import FarmersPage from "./pages/admin/FarmersPage";
 import DiagnosticsPage from "./pages/admin/DiagnosticsPage";
+import AdminDiagnosisDetailPage from "./pages/admin/AdminDiagnosisDetailPage";
+import FarmReportPage from "./pages/admin/FarmReportPage";
 import MessagesPage from "./pages/admin/MessagesPage";
 import { HomeRedirect, ProtectedRoute, RequireRole } from "./routing/ProtectedRoutes";
 
@@ -34,6 +37,7 @@ function App() {
             <Route path="/home" element={<FarmerHomePage />} />
             <Route path="/diagnose" element={<DiagnosePage />} />
             <Route path="/history" element={<HistoryPage />} />
+            <Route path="/history/:id" element={<FarmerDiagnosisDetailPage />} />
           </Route>
         </Route>
 
@@ -42,6 +46,8 @@ function App() {
             <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/admin/farmers" element={<FarmersPage />} />
             <Route path="/admin/diagnostics" element={<DiagnosticsPage />} />
+            <Route path="/admin/diagnostics/:id" element={<AdminDiagnosisDetailPage />} />
+            <Route path="/admin/report" element={<FarmReportPage />} />
             <Route path="/admin/messages" element={<MessagesPage />} />
           </Route>
         </Route>

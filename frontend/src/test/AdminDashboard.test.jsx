@@ -5,8 +5,6 @@ import App from "../App";
 import { AuthProvider } from "../auth/AuthContext";
 import { supabase } from "../auth/supabase";
 import { fetchMe } from "../api/auth";
-import { createInvitation, acceptInvitation } from "../api/invitations";
-import { fetchFarmMembers } from "../api/farms";
 
 vi.mock("../auth/supabase", () => ({
   supabase: {
@@ -34,7 +32,6 @@ vi.mock("../api/farms", () => ({ fetchFarmMembers: vi.fn() }));
 
 const getSession = vi.mocked(supabase.auth.getSession);
 const fetchMeMock = vi.mocked(fetchMe);
-const fetchFarmMembersMock = vi.mocked(fetchFarmMembers);
 
 const SESSION = {
   access_token: "token",
@@ -52,7 +49,7 @@ const adminProfile = {
   requires_onboarding: false,
 };
 
-function renderApp(route = "/admin/farmers") {
+function renderApp(route = "/admin") {
   return render(
     <MemoryRouter initialEntries={[route]}>
       <AuthProvider>
@@ -66,46 +63,44 @@ beforeEach(() => {
   vi.clearAllMocks();
   getSession.mockResolvedValue({ data: { session: SESSION } });
   fetchMeMock.mockResolvedValue(adminProfile);
-  fetchFarmMembersMock.mockResolvedValue([
-    { id: "m1", email: "bella@example.com", full_name: "Bella Farmer", role: "farmer" },
-  ]);
-  vi.mocked(createInvitation).mockResolvedValue({
-    id: "i1",
-    farm_id: "f1",
-    email: "carl@example.com",
-    invited_name: null,
-    status: "pending",
-  });
-  vi.mocked(acceptInvitation).mockResolvedValue({ profile: adminProfile });
 });
 
-describe("FarmersPage", () => {
-  it("lists the members of the admin's farm", async () => {
-    renderApp();
+describe("admin dashboard", () => {
+  it("shows the farm name, summary stats, recent diagnoses, quick actions and top crops", async () => {
+    renderApp("/admin");
 
-    expect(await screen.findByRole("heading", { name: "Farmers" })).toBeInTheDocument();
-    expect(await screen.findByText("Bella Farmer")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Green Acres" })).toBeInTheDocument();
+
+    expect(screen.getByText("Total Farmers")).toBeInTheDocument();
+    expect(screen.getByText("Diagnoses Run")).toBeInTheDocument();
+    expect(screen.getByText("Identified Diseases")).toBeInTheDocument();
+
+    expect(screen.getByText("Adamu Ibrahim — Cassava")).toBeInTheDocument();
+    expect(screen.getByText("Bose Adeban — Maize")).toBeInTheDocument();
+    expect(screen.getByText("Chinedu Okafor — Tomato")).toBeInTheDocument();
+
+    expect(screen.getByRole("link", { name: "Invite New Farmer" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Generate Farm Report" })).toBeInTheDocument();
+
+    expect(screen.getByText("Top Crops Scanned")).toBeInTheDocument();
+    expect(screen.getByText("55%")).toBeInTheDocument();
   });
+});
 
-  it("invites a farmer and confirms with a success message", async () => {
-    renderApp();
-    await screen.findByText("Bella Farmer");
+describe("admin messages", () => {
+  it("shows a conversation and does not claim messages are delivered", async () => {
+    renderApp("/admin/messages");
 
-    fireEvent.click(screen.getByRole("button", { name: "Invite New Farmer" }));
+    expect(await screen.findByRole("heading", { name: "Adamu Ibrahim" })).toBeInTheDocument();
 
-    const emailField = await screen.findByLabelText("Email");
-    fireEvent.change(emailField, {
-      target: { value: "carl@example.com" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Send Invitation" }));
+    const composer = screen.getByLabelText("Write a message");
+    fireEvent.change(composer, { target: { value: "Please send an update" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     expect(
-      await screen.findByText(/Invitation sent\. The farmer will receive an email/),
+      await screen.findByText(
+        /Messaging is not connected yet/,
+      ),
     ).toBeInTheDocument();
-    expect(createInvitation).toHaveBeenCalledWith(
-      "carl@example.com",
-      null,
-      "token",
-    );
   });
 });

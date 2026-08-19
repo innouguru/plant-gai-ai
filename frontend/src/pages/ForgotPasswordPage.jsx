@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../auth/supabase";
+import Logo from "../components/ui/Logo";
+import Button from "../components/ui/Button";
+import FormField from "../components/ui/FormField";
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -29,10 +32,11 @@ function ForgotPasswordPage() {
   return (
     <section className="auth-shell" aria-label="Reset password">
       <div className="auth-card">
+        <Logo />
         <h2>Reset your password</h2>
 
         {sent ? (
-          <p className="form-success" role="status">
+          <p className="form-success form-message" role="status">
             Check your email for a link to reset your password.
           </p>
         ) : (
@@ -42,25 +46,26 @@ function ForgotPasswordPage() {
             </p>
 
             <form className="auth-form" onSubmit={handleSubmit}>
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
+              <FormField id="email" label="Email">
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </FormField>
 
               {error && (
-                <p className="form-error" role="alert">
+                <p className="form-error form-message" role="alert">
                   {error}
                 </p>
               )}
 
-              <button type="submit" disabled={submitting}>
+              <Button type="submit" variant="primary" block disabled={submitting}>
                 {submitting ? "Sending link..." : "Send reset link"}
-              </button>
+              </Button>
             </form>
           </>
         )}
