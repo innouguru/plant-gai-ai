@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
 from app.api.deps import UserContext, get_current_user, get_diagnosis_service, get_provider, require_farmer
+from app.core.rate_limit import authenticated_read_rate_limit, diagnosis_rate_limit
 from app.db.interface import DataProvider
 from app.schemas.diagnosis import DiagnosisDetailItem, DiagnosisHistoryItem, DiagnosisResult
 from app.services.diagnosis_service import diagnose_image
@@ -22,7 +23,7 @@ DEFAULT_HISTORY_LIMIT = 20
 MAX_HISTORY_LIMIT = 100
 
 
-@router.post("", response_model=DiagnosisResult)
+@router.post("", response_model=DiagnosisResult, dependencies=[Depends(diagnosis_rate_limit())])
 async def run_diagnosis(
     image: UploadFile = File(..., description="Leaf photo to analyze"),
     ctx: UserContext = Depends(require_farmer),
@@ -84,7 +85,7 @@ async def run_diagnosis(
     )
 
 
-@router.get("/history", response_model=list[DiagnosisHistoryItem])
+@router.get("/history", response_model=list[DiagnosisHistoryItem], dependencies=[Depends(authenticated_read_rate_limit("diagnosis_reads"))])
 def list_history(
     ctx: UserContext = Depends(require_farmer),
     provider: DataProvider = Depends(get_provider),
@@ -105,7 +106,7 @@ def list_history(
     ]
 
 
-@router.get("/{diagnosis_id}", response_model=DiagnosisDetailItem)
+@router.get("/{diagnosis_id}", response_model=DiagnosisDetailItem, dependencies=[Depends(authenticated_read_rate_limit("diagnosis_reads"))])
 def get_history_detail(
     diagnosis_id: str,
     ctx: UserContext = Depends(get_current_user),

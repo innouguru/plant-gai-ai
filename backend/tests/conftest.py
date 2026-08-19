@@ -12,6 +12,8 @@ os.environ.setdefault("SUPABASE_URL", "http://localhost:9999")
 os.environ.setdefault("SUPABASE_ANON_KEY", "anon-test-key")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "service-role-test-key")
 os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret")
+os.environ.setdefault("APP_ENV", "test")
+os.environ.setdefault("RATE_LIMIT_STORAGE", "memory")
 
 from fastapi.testclient import TestClient  # noqa: E402
 

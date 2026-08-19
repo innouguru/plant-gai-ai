@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import UserContext, get_provider, require_farm_admin
+from app.core.rate_limit import authenticated_read_rate_limit
 from app.db.interface import DataProvider
 from app.schemas.farms import FarmDiagnosis, FarmMember
 from app.schemas.statistics import FarmStatistics
@@ -11,7 +12,7 @@ from app.services.farm_service import get_farm_statistics, list_farm_diagnoses, 
 router = APIRouter(
     prefix="/farms",
     tags=["farms"],
-    dependencies=[Depends(require_farm_admin)],
+    dependencies=[Depends(authenticated_read_rate_limit("farm_reads")), Depends(require_farm_admin)],
 )
 
 DEFAULT_DIAGNOSIS_LIMIT = 20

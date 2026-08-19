@@ -3,6 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -35,6 +36,43 @@ class Settings(BaseSettings):
     model_weights_path: str = "model/weights/plant_disease_resnet18_best.pth"
     model_version: str = "1.0.0"
     model_device: str = "cpu"
+
+    rate_limit_enabled: bool = True
+    rate_limit_storage: str = "redis"
+    rate_limit_redis_url: str = ""
+    rate_limit_fail_mode: str = "closed"
+    rate_limit_global_per_minute: int = Field(default=120, gt=0)
+    rate_limit_diagnosis_per_minute: int = Field(default=5, gt=0)
+    rate_limit_invitations_per_hour: int = Field(default=10, gt=0)
+    rate_limit_onboarding_per_hour: int = Field(default=5, gt=0)
+    rate_limit_invitation_accept_per_hour: int = Field(default=5, gt=0)
+    rate_limit_messages_per_minute: int = Field(default=30, gt=0)
+    rate_limit_reads_per_minute: int = Field(default=120, gt=0)
+    rate_limit_unauthenticated_per_minute: int = Field(default=20, gt=0)
+
+    @field_validator("rate_limit_storage")
+    @classmethod
+    def validate_rate_limit_storage(cls, value: str) -> str:
+        value = value.lower()
+        if value not in {"redis", "memory"}:
+            raise ValueError("RATE_LIMIT_STORAGE must be 'redis' or 'memory'.")
+        return value
+
+    @field_validator("rate_limit_fail_mode")
+    @classmethod
+    def validate_rate_limit_fail_mode(cls, value: str) -> str:
+        value = value.lower()
+        if value not in {"closed", "open"}:
+            raise ValueError("RATE_LIMIT_FAIL_MODE must be 'closed' or 'open'.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_rate_limit_deployment(self):
+        local_envs = {"development", "dev", "test", "testing"}
+        if self.rate_limit_enabled and self.app_env.lower() not in local_envs:
+            if self.rate_limit_storage != "redis" or not self.rate_limit_redis_url:
+                raise ValueError("Enabled rate limiting requires Redis in deployed environments.")
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -3,11 +3,16 @@
 from fastapi import APIRouter, Depends
 
 from app.api.deps import UserContext, get_current_user, get_provider
+from app.core.rate_limit import authenticated_read_rate_limit
 from app.db.interface import DataProvider
 from app.schemas.auth import ProfileResponse
 from app.services.user_service import to_profile_response
 
-router = APIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"],
+    dependencies=[Depends(authenticated_read_rate_limit("auth_reads")), Depends(get_current_user)],
+)
 
 
 @router.get("/me", response_model=ProfileResponse)

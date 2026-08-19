@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends
 
 from app.api.deps import UserContext, get_current_user, get_provider
+from app.core.rate_limit import onboarding_rate_limit
 from app.db.interface import DataProvider
 from app.schemas.onboarding import OnboardingRequest, OnboardingResponse
 from app.services.farm_service import complete_onboarding
@@ -10,7 +11,7 @@ from app.services.farm_service import complete_onboarding
 router = APIRouter(tags=["onboarding"])
 
 
-@router.post("/onboarding", response_model=OnboardingResponse, status_code=201)
+@router.post("/onboarding", response_model=OnboardingResponse, status_code=201, dependencies=[Depends(onboarding_rate_limit())])
 def create_farm(
     payload: OnboardingRequest,
     ctx: UserContext = Depends(get_current_user),

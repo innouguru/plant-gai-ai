@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import get_settings
@@ -49,10 +49,14 @@ class UserContext:
 
 
 def get_current_user(
+    request: Request,
     token: str = Depends(get_access_token),
     provider: DataProvider = Depends(get_provider),
 ) -> UserContext:
     """Verify the access token and load the caller's profile."""
+    cached = getattr(request.state, "user_context", None)
+    if cached is not None:
+        return cached
     settings = get_settings()
     if not settings.supabase_jwt_secret:
         raise HTTPException(
@@ -75,7 +79,9 @@ def get_current_user(
             detail="Your account could not be found.",
         )
 
-    return UserContext(token=token, user_id=user_id, email=claims.get("email"), profile=profile)
+    context = UserContext(token=token, user_id=user_id, email=claims.get("email"), profile=profile)
+    request.state.user_context = context
+    return context
 
 
 def require_farm_admin(ctx: UserContext = Depends(get_current_user)) -> UserContext:

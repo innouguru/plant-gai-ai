@@ -4,6 +4,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from app.core.observability import log_provider_error
+from app.core.rate_limit import RateLimitExceeded, RateLimitUnavailable
 from app.db.errors import ProviderError
 
 _STATUS_BY_CODE: dict[str, tuple[int, str]] = {
@@ -35,5 +36,24 @@ def provider_error_to_response(request: Request, exc: ProviderError) -> JSONResp
     return JSONResponse(
         status_code=status_code,
         content={"detail": detail},
+        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")},
+    )
+
+
+def rate_limit_exceeded_to_response(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many requests. Please try again later."},
+        headers={
+            "Retry-After": str(exc.retry_after),
+            "X-Request-ID": getattr(request.state, "request_id", "unknown"),
+        },
+    )
+
+
+def rate_limit_unavailable_to_response(request: Request, exc: RateLimitUnavailable) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Rate limiting is temporarily unavailable. Please try again."},
         headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")},
     )
