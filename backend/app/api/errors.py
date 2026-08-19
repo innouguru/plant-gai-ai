@@ -3,6 +3,7 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from app.core.observability import log_provider_error
 from app.db.errors import ProviderError
 
 _STATUS_BY_CODE: dict[str, tuple[int, str]] = {
@@ -29,5 +30,10 @@ _BACKEND_DEFAULT = "An external service error occurred. Please try again."
 
 def provider_error_to_response(request: Request, exc: ProviderError) -> JSONResponse:
     """Global handler that converts provider errors into safe user messages."""
+    log_provider_error(request, exc.code)
     status_code, detail = _STATUS_BY_CODE.get(exc.code, (502, _BACKEND_DEFAULT))
-    return JSONResponse(status_code=status_code, content={"detail": detail})
+    return JSONResponse(
+        status_code=status_code,
+        content={"detail": detail},
+        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")},
+    )
