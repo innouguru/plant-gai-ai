@@ -2,10 +2,10 @@
 
 ## Status
 
-**Phase 1 implemented.** The schema ships in
-`supabase/migrations/0001_auth_foundation.sql` and covers authentication and
-farm membership. Later features (diagnoses, messaging) keep the same
-conventions and are planned below.
+**Phase 3 implemented.** The schema ships in ordered migrations
+`0001_auth_foundation.sql` through `0006_messaging.sql` and covers
+authentication, farm membership, diagnoses, farm statistics, authorized
+diagnosis detail, and farm-scoped messaging.
 
 ## Platform
 
@@ -14,7 +14,7 @@ conventions and are planned below.
 - Row Level Security enabled on every application table.
 - SQL migrations stored in `supabase/migrations/`.
 
-## Phase 1 entities
+## Implemented entities
 
 ### profiles
 
@@ -75,22 +75,24 @@ SECURITY DEFINER functions that re-check `auth.uid()` internally:
 - `claim_pending_invitation()` — binds the caller to the farm of their oldest
   pending invitation (role `farmer`, farm_id from the invitation row).
 
-## Planned entities (future phases)
-
-### diagnoses (Phase 2)
+### diagnoses
 
 | column | type | notes |
 | --- | --- | --- |
 | id | uuid | PK |
-| profile_id | uuid | FK -> `profiles(id)` |
-| farm_id | uuid, null | snapshot of farm at diagnosis time |
-| image_url | text | Supabase Storage object URL |
-| model_version | text | model used |
-| predicted_class | text | mapped 22-class name |
+| farmer_id | uuid | FK -> `profiles(id)` |
+| farm_id | uuid | FK -> `farms(id)`; snapshot of farm at diagnosis time |
+| disease | text | Predicted class name |
 | confidence | numeric | 0..1 |
+| crop | text | Derived crop name |
+| model_version | text | model used |
 | created_at | timestamptz | |
 
-### messages (Phase 3)
+Diagnosis rows are append-only. Inserts run through the secured
+`save_diagnosis()` function, which derives farmer and farm ownership from
+`auth.uid()`.
+
+### messages
 
 | column | type | notes |
 | --- | --- | --- |
@@ -100,6 +102,10 @@ SECURITY DEFINER functions that re-check `auth.uid()` internally:
 | body | text | |
 | read_at | timestamptz, null | |
 | created_at | timestamptz | |
+
+Messages are visible only to their sender or recipient. Sending and read-state
+updates run through secured functions, and participants must be opposite-role
+members of the same farm.
 
 ## Conventions
 

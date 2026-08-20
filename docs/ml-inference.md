@@ -27,33 +27,28 @@ model/metadata/model_info.json                  <- committed
 The `.pth` file must never be committed. Git ignores `*.pth`, `*.pt`, `*.ckpt`,
 and the whole `model/weights/` directory.
 
-## Current phase (Phase 0)
+## Current implementation (Phase 2 complete)
 
-Phase 0 provides **scaffolding only**:
+Diagnosis inference is implemented with the final model and lazy loading:
 
-- `backend/app/services/ml/inference_service.py` — an `InferenceService`
-  class with stubbed `load_model`, `preprocess`, and `predict` methods that
-  raise `NotImplementedError`.
-- `backend/app/services/ml/model_info.py` — static model metadata constants
-  used as configuration.
-- The backend **never** imports `torch` and never touches the `.pth` file.
+- `backend/app/services/ml/inference_service.py` loads the ResNet-18
+   checkpoint once, validates class metadata, preprocesses images, and runs
+   CPU inference.
+- Preprocessing is `Resize((224, 224))`, RGB conversion, `ToTensor()`, and
+   ImageNet normalization with mean `[0.485, 0.456, 0.406]` and standard
+   deviation `[0.229, 0.224, 0.225]`.
+- Model loading is lazy; the checkpoint is not loaded at application import
+   time.
 
-Nothing is loaded, preprocessed, or predicted yet.
-
-## Planned pipeline (Phase 2)
-
-Phase 2 will implement, **after** the original training/inference
-configuration has been verified:
+## Implemented pipeline
 
 1. **Load** — instantiate `torchvision.models.resnet18`, load `state_dict`
    from `model/weights/`, move to CPU, set to eval mode. One-time load cached
    in memory.
-2. **Preprocess** — resize to 224x224 and apply the exact normalization used
-   during training. Values will be copied from the verified notebook rather
-   than invented.
+2. **Preprocess** — resize to 224x224, convert to RGB, and apply ImageNet
+   normalization.
 3. **Predict** — forward pass, output logits, softmax.
-4. **Confidence evaluation** — a confidence threshold policy (decided in
-   Phase 2, with approval).
+4. **Confidence evaluation** — return the top class and softmax confidence.
 5. **Version** — the `MODEL_VERSION` (env `MODEL_VERSION`) is returned with
    each prediction and stored with diagnoses.
 

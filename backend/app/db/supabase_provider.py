@@ -14,7 +14,11 @@ import httpx
 
 from app.db.errors import ProviderError
 from app.db.interface import DataProvider
+from app.schemas.diagnosis import AuthorizedDiagnosis
 from app.schemas.domain import Diagnosis, Farm, Invitation, InvitationStatus, Profile, Role
+from app.schemas.farms import FarmDiagnosis
+from app.schemas.messages import MessageItem
+from app.schemas.statistics import FarmStatistics
 
 _TIMEOUT = httpx.Timeout(15.0)
 
@@ -221,7 +225,7 @@ class SupabaseDataProvider:
         row = self._first_row(response.json())
         if row is None:
             raise ProviderError("diagnosis_save_failed", "Could not save the diagnosis.")
-        return Diagnosis.model_validate(row)
+        return AuthorizedDiagnosis.model_validate(row)
 
     def list_diagnoses(self, token: str, *, farmer_id: str, limit: int = 20) -> list[Diagnosis]:
         """Return the caller's own diagnoses, newest first.
@@ -260,6 +264,77 @@ class SupabaseDataProvider:
         if not rows:
             return None
         return Diagnosis.model_validate(rows[0])
+
+    def get_authorized_diagnosis(
+        self, token: str, *, diagnosis_id: str
+    ) -> AuthorizedDiagnosis | None:
+        """Return a diagnosis allowed by the caller's role and farm RLS."""
+        response = self._client.post(
+            f"{self._url}/rest/v1/rpc/get_authorized_diagnosis",
+            headers=self._user_headers(token),
+            json={"p_diagnosis_id": diagnosis_id},
+        )
+        self._raise_for_status(response)
+        row = self._first_row(response.json())
+        if row is None:
+            return None
+        return AuthorizedDiagnosis.model_validate(row)
+
+    def get_farm_statistics(self, token: str, farm_id: str) -> FarmStatistics:
+        """Return statistics through the authorization-checking RPC."""
+        response = self._client.post(
+            f"{self._url}/rest/v1/rpc/get_farm_statistics",
+            headers=self._user_headers(token),
+            json={"p_farm_id": farm_id},
+        )
+        self._raise_for_status(response)
+        row = self._first_row(response.json())
+        if row is None:
+            raise ProviderError("farm_statistics_failed", "Could not load farm statistics.")
+        return FarmStatistics.model_validate(row)
+
+    def list_farm_diagnoses(
+        self, token: str, farm_id: str, *, limit: int = 20, offset: int = 0
+    ) -> list[FarmDiagnosis]:
+        """Return one authorized farm's diagnoses, newest first."""
+        response = self._client.post(
+            f"{self._url}/rest/v1/rpc/list_farm_diagnoses",
+            headers=self._user_headers(token),
+            json={"p_farm_id": farm_id, "p_limit": limit, "p_offset": offset},
+        )
+        self._raise_for_status(response)
+        return [FarmDiagnosis.model_validate(row) for row in response.json()]
+
+    def list_messages(self, token: str, *, user_id: str, limit: int = 100) -> list[MessageItem]:
+        response = self._client.post(
+            f"{self._url}/rest/v1/rpc/list_messages",
+            headers=self._user_headers(token),
+            json={"p_limit": limit},
+        )
+        self._raise_for_status(response)
+        return [MessageItem.model_validate(row) for row in response.json()]
+
+    def create_message(self, token: str, *, recipient_id: str, body: str) -> MessageItem:
+        response = self._client.post(
+            f"{self._url}/rest/v1/rpc/send_message",
+            headers=self._user_headers(token),
+            json={"p_recipient_id": recipient_id, "p_body": body},
+        )
+        self._raise_for_status(response)
+        row = self._first_row(response.json())
+        if row is None:
+            raise ProviderError("message_send_failed", "Could not send the message.")
+        return MessageItem.model_validate(row)
+
+    def mark_message_read(self, token: str, *, message_id: str) -> MessageItem | None:
+        response = self._client.post(
+            f"{self._url}/rest/v1/rpc/mark_message_read",
+            headers=self._user_headers(token),
+            json={"p_message_id": message_id},
+        )
+        self._raise_for_status(response)
+        row = self._first_row(response.json())
+        return MessageItem.model_validate(row) if row else None
 
     # ------------------------------------------------------------------
     # helpers

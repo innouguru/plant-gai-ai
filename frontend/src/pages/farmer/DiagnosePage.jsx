@@ -83,7 +83,7 @@ function DiagnosePage() {
       setResult({
         className: data.disease,
         confidence: Math.round(data.confidence * 100),
-        scannedAt: new Date().toISOString(),
+        scannedAt: data.created_at,
       });
       setStep(STEP_RESULT);
     } catch (err) {

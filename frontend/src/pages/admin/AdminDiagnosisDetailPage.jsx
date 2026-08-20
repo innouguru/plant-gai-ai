@@ -1,17 +1,43 @@
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext";
+import { useDevPreview } from "../../preview/devPreview";
+import { fetchDiagnosis } from "../../api/diagnosis";
 import PageHeader from "../../components/ui/PageHeader";
 import CropThumb from "../../components/ui/CropThumb";
 import StatusBadge from "../../components/ui/StatusBadge";
-import { ErrorState } from "../../components/ui/States";
+import { ErrorState, LoadingState } from "../../components/ui/States";
 import { getClassInfo } from "../../data/crops";
 import { formatDateTime } from "../../data/dates";
 import { devFarmDiagnosisById } from "../../data/devMocks";
 
 function AdminDiagnosisDetailPage() {
   const { id } = useParams();
-  const diagnosis = devFarmDiagnosisById(id);
+  const { session } = useAuth();
+  const { previewRole } = useDevPreview();
+  const isPreview = previewRole === "farm_admin";
+  const [diagnosis, setDiagnosis] = useState(isPreview ? devFarmDiagnosisById(id) : null);
+  const [error, setError] = useState(null);
+  const [notFound, setNotFound] = useState(false);
 
-  if (!diagnosis) {
+  const load = useCallback(async () => {
+    if (isPreview) return;
+    setDiagnosis(null);
+    setError(null);
+    setNotFound(false);
+    try {
+      setDiagnosis(await fetchDiagnosis(id, session?.access_token));
+    } catch (err) {
+      if (err?.status === 404) setNotFound(true);
+      else setError(err?.message ?? "We could not load that diagnosis.");
+    }
+  }, [id, isPreview, session?.access_token]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (notFound || (isPreview && !diagnosis)) {
     return (
       <>
         <PageHeader title="Diagnosis" />
@@ -24,13 +50,33 @@ function AdminDiagnosisDetailPage() {
     );
   }
 
-  const info = getClassInfo(diagnosis.className);
+  if (error) {
+    return (
+      <>
+        <PageHeader title="Diagnosis" />
+        <ErrorState message={error} onRetry={load}>
+          <Link to="/admin/diagnostics" className="btn btn-outline">
+            Back to Diagnostics
+          </Link>
+        </ErrorState>
+      </>
+    );
+  }
+
+  if (!diagnosis) return <LoadingState message="Loading diagnosis..." />;
+
+  const info = getClassInfo(diagnosis.disease ?? diagnosis.className);
+  const farmerName = diagnosis.farmer_name ?? diagnosis.farmer;
+  const confidence = diagnosis.confidence <= 1
+    ? Math.round(diagnosis.confidence * 100)
+    : diagnosis.confidence;
+  const createdAt = diagnosis.created_at ?? diagnosis.scannedAt;
 
   return (
     <div aria-label="Diagnosis details">
       <PageHeader
         title="Diagnosis Details"
-        subtitle={`For ${diagnosis.farmer}`}
+        subtitle={`For ${farmerName}`}
         actions={
           <Link to="/admin/diagnostics" className="btn btn-outline">
             Back to Diagnostics
@@ -49,13 +95,13 @@ function AdminDiagnosisDetailPage() {
 
         <h1 className="result-disease">{info.diseaseDisplay}</h1>
         <p className="result-confidence">
-          {diagnosis.confidence}% Confidence • {formatDateTime(diagnosis.scannedAt)}
+          {confidence}% Confidence • {formatDateTime(createdAt)}
         </p>
 
         <div className="detail-grid">
           <div className="result-section">
             <h3>Farmer</h3>
-            <p>{diagnosis.farmer}</p>
+            <p>{farmerName}</p>
           </div>
           <div className="result-section">
             <h3>Crop</h3>

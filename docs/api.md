@@ -35,7 +35,7 @@ Top-level pointer. Response `200`:
 }
 ```
 
-## Authenticated endpoints (Phase 1)
+## Authenticated endpoints
 
 All of the following require `Authorization: Bearer <Supabase access token>`.
 
@@ -144,6 +144,53 @@ Response `200`:
 
 Errors: `403` if the caller does not administer that farm.
 
+### GET /api/v1/farms/{farm_id}/statistics (farm admin only)
+
+Returns aggregate diagnosis statistics for the caller's own farm. The backend
+derives the caller's role and farm from the authenticated profile; requesting
+another farm returns `403`.
+
+Response `200` includes `farm_id`, member `farmer_count`, diagnosis totals,
+`disease_counts`, `crop_counts`, ranked `top_diseases` and `top_crops`, and a
+bounded `recent_diagnoses` list containing diagnosis and farmer display data.
+
+### GET /api/v1/farms/{farm_id}/diagnoses (farm admin only)
+
+Returns the caller's farm diagnoses, newest first. Supports `limit` (default
+20, maximum 100) and `offset` (default 0) query parameters. Each row includes
+the diagnosis fields, `farmer_id`, and a safe farmer display name. Requests
+for another farm return `403`.
+
+### POST /api/v1/diagnosis (farmer only)
+
+Analyzes a JPEG, PNG, WebP, or BMP leaf image, persists the result, and
+returns the diagnosis. The request is `multipart/form-data` with an `image`
+file. Files must be non-empty and no larger than 10 MB.
+
+Response `200`:
+
+```json
+{
+  "id": "diagnosis-1",
+  "disease": "Cassava mosaic",
+  "confidence": 0.88,
+  "crop": "Cassava",
+  "model_version": "resnet18-final",
+  "created_at": "2026-08-20T10:00:00Z"
+}
+```
+
+### GET /api/v1/diagnosis/history (farmer only)
+
+Returns the authenticated farmer's diagnosis history, newest first. Supports
+`limit` from 1 through 100 and defaults to 20.
+
+### GET /api/v1/diagnosis/{diagnosis_id}
+
+Returns a diagnosis owned by the authenticated farmer or belonging to the
+authenticated farm administrator's own farm. The response includes the
+diagnosis fields plus `farmer_id` and `farmer_name`.
+
 ## Auth flows (Supabase-managed)
 
 Sign-up, sign-in, password reset, and invited registration are handled by the
@@ -154,21 +201,23 @@ frontend + Supabase Auth directly:
   `POST /invitations/accept`).
 - Password reset: `/forgot-password` -> `/reset-password`.
 
-## Planned endpoints (future phases)
+## Messaging endpoints
 
-These are **not implemented**. Listed for planning only.
+### GET /api/v1/messages
 
-### Diagnoses (Phase 2+)
+Returns the authenticated user's farm-scoped messages, newest first.
 
-- `POST /api/v1/diagnoses` — upload a photo and get a prediction
-- `GET /api/v1/diagnoses` — own history
-- `GET /api/v1/diagnoses/{id}`
+### POST /api/v1/messages
 
-### Farm analytics (Phase 3+)
+Sends a message to a user on the same farm with the opposite role. The sender
+is derived from the authenticated account; the request supplies only
+`recipient_id` and `body`.
 
-- `GET /api/v1/farms/{farm_id}/statistics` (admin)
+### PATCH /api/v1/messages/{id}/read
 
-### Messaging (Phase 3+)
+Marks a received message as read. Unrelated messages cannot be modified.
 
-- `GET /api/v1/messages`, `POST /api/v1/messages`
-- `PATCH /api/v1/messages/{id}/read`
+Message responses include `id`, `sender_id`, `sender_name`, `recipient_id`,
+`recipient_name`, `body`, `read_at`, and `created_at`. Message bodies are
+limited to 2,000 characters. Sending is restricted to opposite-role members
+of the authenticated user's farm.

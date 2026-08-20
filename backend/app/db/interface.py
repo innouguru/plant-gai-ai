@@ -7,7 +7,11 @@ FastAPI routes and services stay testable without a live Supabase project
 
 from typing import Protocol
 
+from app.schemas.diagnosis import AuthorizedDiagnosis
 from app.schemas.domain import Diagnosis, Farm, Invitation, Profile
+from app.schemas.farms import FarmDiagnosis
+from app.schemas.messages import MessageItem
+from app.schemas.statistics import FarmStatistics
 
 
 class DataProvider(Protocol):
@@ -50,3 +54,19 @@ class DataProvider(Protocol):
     def list_diagnoses(self, token: str, *, farmer_id: str, limit: int = 20) -> list[Diagnosis]: ...
 
     def get_diagnosis(self, token: str, *, diagnosis_id: str, farmer_id: str) -> Diagnosis | None: ...
+
+    def get_authorized_diagnosis(
+        self, token: str, *, diagnosis_id: str
+    ) -> AuthorizedDiagnosis | None: ...
+
+    def get_farm_statistics(self, token: str, farm_id: str) -> FarmStatistics: ...
+
+    def list_farm_diagnoses(
+        self, token: str, farm_id: str, *, limit: int = 20, offset: int = 0
+    ) -> list[FarmDiagnosis]: ...
+
+    def list_messages(self, token: str, *, user_id: str, limit: int = 100) -> list[MessageItem]: ...
+
+    def create_message(self, token: str, *, recipient_id: str, body: str) -> MessageItem: ...
+
+    def mark_message_read(self, token: str, *, message_id: str) -> MessageItem | None: ...

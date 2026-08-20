@@ -7,6 +7,7 @@ import { supabase } from "../auth/supabase";
 import { fetchMe } from "../api/auth";
 import { completeOnboarding } from "../api/onboarding";
 import { acceptInvitation } from "../api/invitations";
+import { fetchFarmStatistics } from "../api/farms";
 import { hashParams } from "./hashParamsMock";
 
 vi.mock("../auth/supabase", () => ({
@@ -31,7 +32,7 @@ vi.mock("../api/invitations", () => ({
   createInvitation: vi.fn(),
   acceptInvitation: vi.fn(),
 }));
-vi.mock("../api/farms", () => ({ fetchFarmMembers: vi.fn() }));
+vi.mock("../api/farms", () => ({ fetchFarmMembers: vi.fn(), fetchFarmStatistics: vi.fn(), fetchFarmDiagnoses: vi.fn() }));
 
 vi.mock("../auth/hashParams", async () => {
   const { hashParams } = await import("./hashParamsMock");
@@ -40,6 +41,7 @@ vi.mock("../auth/hashParams", async () => {
 
 const getSession = vi.mocked(supabase.auth.getSession);
 const fetchMeMock = vi.mocked(fetchMe);
+const fetchFarmStatisticsMock = vi.mocked(fetchFarmStatistics);
 
 const SESSION = {
   access_token: "token",
@@ -106,6 +108,13 @@ beforeEach(() => {
   hashParams.delete("type");
   getSession.mockResolvedValue({ data: { session: null } });
   fetchMeMock.mockResolvedValue(null);
+  fetchFarmStatisticsMock.mockResolvedValue({
+    farmer_count: 0,
+    total_diagnoses: 0,
+    disease_counts: {},
+    crop_counts: {},
+    recent_diagnoses: [],
+  });
   vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
   vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ error: null });
   vi.mocked(supabase.auth.signUp).mockResolvedValue({ error: null, data: {} });

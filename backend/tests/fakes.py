@@ -16,6 +16,10 @@ from app.schemas.domain import (
     Profile,
     Role,
 )
+from app.schemas.diagnosis import AuthorizedDiagnosis
+from app.schemas.farms import FarmDiagnosis
+from app.schemas.messages import MessageItem
+from app.schemas.statistics import CropCount, DiseaseCount, FarmStatistics, RecentDiagnosis
 
 
 def _now() -> datetime:
@@ -30,6 +34,7 @@ class FakeDataProvider:
         self.farms: dict[str, Farm] = {}
         self.invitations: dict[str, Invitation] = {}
         self.diagnoses: dict[str, Diagnosis] = {}
+        self.messages: dict[str, MessageItem] = {}
         self.invite_calls: list[dict] = []
         self.fail_invite_emails: set[str] = set()
         self._seq = itertools.count(1)
@@ -153,6 +158,157 @@ class FakeDataProvider:
         if diagnosis is None or diagnosis.farmer_id != farmer_id:
             return None
         return diagnosis
+
+    def get_authorized_diagnosis(self, token: str, *, diagnosis_id: str) -> AuthorizedDiagnosis | None:
+        """Apply the same farmer-own or admin-own-farm boundary as the RPC."""
+        user_id = self._user_id_from_token(token)
+        profile = self.profiles.get(user_id)
+        diagnosis = self.diagnoses.get(diagnosis_id)
+        if profile is None or diagnosis is None or profile.farm_id is None:
+            return None
+        if profile.role == Role.farmer:
+            allowed = diagnosis.farmer_id == user_id
+        elif profile.role == Role.farm_admin:
+            allowed = diagnosis.farm_id == profile.farm_id
+        else:
+            allowed = False
+        if not allowed:
+            return None
+        farmer = self.profiles.get(diagnosis.farmer_id)
+        return AuthorizedDiagnosis(
+            id=diagnosis.id,
+            farmer_id=diagnosis.farmer_id,
+            farmer_name=(farmer.full_name or farmer.email) if farmer else None,
+            farm_id=diagnosis.farm_id,
+            disease=diagnosis.disease,
+            confidence=diagnosis.confidence,
+            crop=diagnosis.crop,
+            model_version=diagnosis.model_version,
+            created_at=diagnosis.created_at or _now(),
+        )
+
+    def get_farm_statistics(self, token: str, farm_id: str) -> FarmStatistics:
+        """Return only the authenticated farm admin's own farm statistics."""
+        user_id = self._user_id_from_token(token)
+        profile = self.profiles.get(user_id)
+        if profile is None:
+            raise ProviderError("not_authenticated", "profile not found")
+        if profile.role != Role.farm_admin or profile.farm_id != farm_id:
+            raise ProviderError("farm_stats_forbidden", "statistics access denied")
+
+        rows = [d for d in self.diagnoses.values() if d.farm_id == farm_id]
+        rows.sort(key=lambda d: (d.created_at or _now(), d.id), reverse=True)
+        disease_counts: dict[str, int] = {}
+        crop_counts: dict[str, int] = {}
+        for row in rows:
+            disease_counts[row.disease] = disease_counts.get(row.disease, 0) + 1
+            crop_counts[row.crop] = crop_counts.get(row.crop, 0) + 1
+
+        def ranked(counts: dict[str, int], key: str):
+            model = DiseaseCount if key == "disease" else CropCount
+            return [
+                model(**{key: name, "count": count})
+                for name, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:5]
+            ]
+
+        recent = []
+        for row in rows[:10]:
+            farmer = self.profiles.get(row.farmer_id)
+            recent.append(
+                RecentDiagnosis(
+                    id=row.id,
+                    farmer_id=row.farmer_id,
+                    farmer_name=(farmer.full_name or farmer.email) if farmer else None,
+                    disease=row.disease,
+                    crop=row.crop,
+                    confidence=row.confidence,
+                    created_at=row.created_at or _now(),
+                )
+            )
+
+        healthy = sum(row.disease.lower().endswith(" healthy") for row in rows)
+        return FarmStatistics(
+            farm_id=farm_id,
+            farmer_count=sum(profile.farm_id == farm_id for profile in self.profiles.values()),
+            total_diagnoses=len(rows),
+            healthy_diagnoses=healthy,
+            diseased_diagnoses=len(rows) - healthy,
+            disease_counts=disease_counts,
+            crop_counts=crop_counts,
+            top_diseases=ranked(disease_counts, "disease"),
+            top_crops=ranked(crop_counts, "crop"),
+            recent_diagnoses=recent,
+        )
+
+    def list_farm_diagnoses(
+        self, token: str, farm_id: str, *, limit: int = 20, offset: int = 0
+    ) -> list[FarmDiagnosis]:
+        """Return paginated diagnoses only for the authenticated farm admin."""
+        user_id = self._user_id_from_token(token)
+        profile = self.profiles.get(user_id)
+        if profile is None:
+            raise ProviderError("not_authenticated", "profile not found")
+        if profile.role != Role.farm_admin or profile.farm_id != farm_id:
+            raise ProviderError("farm_stats_forbidden", "diagnosis access denied")
+
+        rows = [d for d in self.diagnoses.values() if d.farm_id == farm_id]
+        rows.sort(key=lambda d: (d.created_at or _now(), d.id), reverse=True)
+        page = rows[offset : offset + limit]
+        result = []
+        for row in page:
+            farmer = self.profiles.get(row.farmer_id)
+            result.append(
+                FarmDiagnosis(
+                    id=row.id,
+                    farmer_id=row.farmer_id,
+                    farmer_name=(farmer.full_name or farmer.email) if farmer else None,
+                    disease=row.disease,
+                    confidence=row.confidence,
+                    crop=row.crop,
+                    model_version=row.model_version,
+                    created_at=row.created_at or _now(),
+                )
+            )
+        return result
+
+    def list_messages(self, token: str, *, user_id: str, limit: int = 100) -> list[MessageItem]:
+        rows = [message for message in self.messages.values() if user_id in (message.sender_id, message.recipient_id)]
+        rows.sort(key=lambda message: (message.created_at, message.id), reverse=True)
+        return rows[:limit]
+
+    def create_message(self, token: str, *, recipient_id: str, body: str) -> MessageItem:
+        sender_id = self._user_id_from_token(token)
+        sender = self.profiles.get(sender_id)
+        recipient = self.profiles.get(recipient_id)
+        if (
+            sender is None
+            or recipient is None
+            or sender.farm_id is None
+            or sender.farm_id != recipient.farm_id
+            or sender.role == recipient.role
+            or sender_id == recipient_id
+        ):
+            raise ProviderError("message_forbidden", "message participants are not allowed")
+        message = MessageItem(
+            id=self.new_id("msg-"),
+            sender_id=sender_id,
+            sender_name=sender.full_name or sender.email,
+            recipient_id=recipient_id,
+            recipient_name=recipient.full_name or recipient.email,
+            body=body,
+            created_at=_now(),
+        )
+        self.messages[message.id] = message
+        return message
+
+    def mark_message_read(self, token: str, *, message_id: str) -> MessageItem | None:
+        user_id = self._user_id_from_token(token)
+        message = self.messages.get(message_id)
+        if message is None or message.recipient_id != user_id:
+            return None
+        updated = message.model_copy(update={"read_at": message.read_at or _now()})
+        self.messages[message_id] = updated
+        return updated
 
     # ------------------------------------------------------------------
     # helpers

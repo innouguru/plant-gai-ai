@@ -14,26 +14,20 @@ writing or modifying any code.
 
 The project is developed in **controlled phases** (see `docs/development-phases.md`).
 
-- Phase 0 (CURRENT): project foundation only.
-- Later phases add authentication, diagnosis, history, farm features,
-  messaging, and admin views.
+- Phases 0 through 3 are complete: foundation, accounts and farms, diagnosis,
+  and farm features/messaging.
+- Phase 4 is planned and covers monitoring, rate limits, error tracking,
+  accessibility, and performance hardening.
 
 An agent must implement **only the requested phase**. Do not start a later phase
 because it seems obvious or convenient.
 
 ## 2. Scope discipline
 
-Implement exactly the work described in the current task. Do not add:
-
-- login/registration UI
-- diagnosis or camera functionality
-- diagnosis history
-- farm-level statistics
-- messaging
-- admin dashboards
-- production database schemas
-
-unless they are part of the requested phase.
+Implement exactly the work described in the current task. Do not add future
+Phase 4 functionality unless it is explicitly requested. Preserve the
+completed authentication, diagnosis, farm-feature, and messaging behavior
+unless a task explicitly requests a change.
 
 ## 3. No unapproved redesign
 
@@ -54,9 +48,9 @@ Do not retrain, fine-tune, or replace it. Do not regenerate weights.
 
 ## 5. Do not change preprocessing without approval
 
-Preprocessing for inference is not yet implemented (Phase 2). When it is,
-do not modify normalization, resize, class mapping, or confidence thresholds
-without explicit approval.
+Inference preprocessing is implemented and frozen. Do not modify
+normalization, resize, class mapping, or confidence behavior without explicit
+approval.
 
 ## 6. Never expose secrets
 
@@ -101,9 +95,9 @@ compatible where practical. Avoid unnecessary breaking changes.
 
 ## 12. No premature implementation
 
-Future functionality must not be implemented prematurely. Scaffolding,
-placeholders, and stubs that raise `NotImplementedError` are acceptable;
-working-but-unrequested features are not.
+Future Phase 4 functionality must not be implemented prematurely. Working but
+unrequested features are not acceptable. Existing completed features should be
+preserved rather than replaced with placeholders.
 
 ---
 

@@ -3,8 +3,9 @@
 Mobile-first web application that helps farmers diagnose plant diseases from
 leaf photos using an already-trained PyTorch ResNet-18 model.
 
-**Current status: Phase 1 — Accounts and farms.** Authentication and the
-application foundation are in place; diagnosis arrives in Phase 2. See
+**Current status: Phase 3 — Farm features and messaging complete.** Accounts,
+diagnosis, farm statistics, farm diagnosis views, and messaging are implemented;
+administration and operational polish remain planned. See
 [`docs/development-phases.md`](docs/development-phases.md) for the roadmap.
 
 ## Repository structure
@@ -45,10 +46,15 @@ Key variables:
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Frontend (direct Supabase Auth calls) |
 | `VITE_API_BASE_URL` | Frontend (API base; defaults to `/api/v1` behind the Vite proxy) |
 
-Apply the database migration before first use:
+Apply the database migrations before first use, in filename order:
 
 ```
 supabase/migrations/0001_auth_foundation.sql
+supabase/migrations/0002_diagnosis_history.sql
+supabase/migrations/0003_farm_statistics.sql
+supabase/migrations/0004_farm_diagnoses.sql
+supabase/migrations/0005_authorized_diagnosis_detail.sql
+supabase/migrations/0006_messaging.sql
 ```
 
 See [`docs/database.md`](docs/database.md) for the schema and Row Level
@@ -68,8 +74,9 @@ python -m venv .venv
 - Interactive docs: `http://localhost:8000/docs`
 
 Authenticated endpoints verify the Supabase access JWT for the project and
-derive the user's role from their `profiles` row. Supabase must be configured
-for auth-backed endpoints to respond (they return `503` otherwise).
+derive the user's role and farm from their `profiles` row. This includes
+diagnosis, farm statistics, farm diagnosis views, and messaging. Supabase must
+be configured for auth-backed endpoints to respond (they return `503` otherwise).
 
 ## Frontend (React + Vite)
 
@@ -79,10 +86,10 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. The frontend provides the auth screens
+Open `http://localhost:5173`. The frontend provides auth screens
 (login/reset/invited-registration), role-based routing (farmers vs. farm
-admins), and the role shells. Diagnosis and history are placeholders until
-Phase 2.
+admins), diagnosis and history, farm dashboards and reports, diagnostics, and
+farm-scoped messaging.
 
 > Run the backend first so the frontend can reach `/api/*` through the Vite
 > proxy (`/api` -> `http://localhost:8000`).

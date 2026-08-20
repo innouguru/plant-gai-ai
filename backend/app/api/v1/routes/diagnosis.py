@@ -2,9 +2,9 @@
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
-from app.api.deps import UserContext, get_diagnosis_service, get_provider, require_farmer
+from app.api.deps import UserContext, get_current_user, get_diagnosis_service, get_provider, require_farmer
 from app.db.interface import DataProvider
-from app.schemas.diagnosis import DiagnosisHistoryItem, DiagnosisResult
+from app.schemas.diagnosis import DiagnosisDetailItem, DiagnosisHistoryItem, DiagnosisResult
 from app.services.diagnosis_service import diagnose_image
 from app.services.ml.inference_service import (
     ImageDecodeError,
@@ -105,26 +105,28 @@ def list_history(
     ]
 
 
-@router.get("/{diagnosis_id}", response_model=DiagnosisHistoryItem)
+@router.get("/{diagnosis_id}", response_model=DiagnosisDetailItem)
 def get_history_detail(
     diagnosis_id: str,
-    ctx: UserContext = Depends(require_farmer),
+    ctx: UserContext = Depends(get_current_user),
     provider: DataProvider = Depends(get_provider),
-) -> DiagnosisHistoryItem:
-    """Return one of the caller's own diagnoses by id (404 otherwise)."""
-    row = provider.get_diagnosis(
-        token=ctx.token, diagnosis_id=diagnosis_id, farmer_id=ctx.user_id
-    )
+) -> DiagnosisDetailItem:
+    """Return a farmer's own diagnosis or an admin's own-farm diagnosis."""
+    if ctx.profile.role.value not in {"farmer", "farm_admin"} or ctx.profile.farm_id is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this diagnosis.")
+    row = provider.get_authorized_diagnosis(token=ctx.token, diagnosis_id=diagnosis_id)
     if row is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="That diagnosis could not be found.",
         )
-    return DiagnosisHistoryItem(
+    return DiagnosisDetailItem(
         id=row.id,
         disease=row.disease,
         confidence=row.confidence,
         crop=row.crop,
         model_version=row.model_version,
         created_at=row.created_at,
+        farmer_id=row.farmer_id,
+        farmer_name=row.farmer_name,
     )

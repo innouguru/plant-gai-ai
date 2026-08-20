@@ -29,7 +29,7 @@ vi.mock("../api/invitations", () => ({
   createInvitation: vi.fn(),
   acceptInvitation: vi.fn(),
 }));
-vi.mock("../api/farms", () => ({ fetchFarmMembers: vi.fn() }));
+vi.mock("../api/farms", () => ({ fetchFarmMembers: vi.fn(), fetchFarmStatistics: vi.fn(), fetchFarmDiagnoses: vi.fn() }));
 vi.mock("../api/diagnosis", () => ({
   submitDiagnosis: vi.fn(),
   fetchHistory: vi.fn(),

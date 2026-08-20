@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.schemas.domain import Role
 
@@ -23,3 +23,16 @@ class FarmMember(BaseModel):
     email: EmailStr
     full_name: str | None = None
     role: Role
+
+
+class FarmDiagnosis(BaseModel):
+    """A diagnosis row with the farmer's safe display name."""
+
+    id: str
+    farmer_id: str
+    farmer_name: str | None = None
+    disease: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    crop: str
+    model_version: str
+    created_at: datetime

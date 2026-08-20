@@ -5,6 +5,7 @@ import App from "../App";
 import { AuthProvider } from "../auth/AuthContext";
 import { supabase } from "../auth/supabase";
 import { fetchMe } from "../api/auth";
+import { fetchFarmStatistics } from "../api/farms";
 
 vi.mock("../auth/supabase", () => ({
   supabase: {
@@ -28,10 +29,11 @@ vi.mock("../api/invitations", () => ({
   createInvitation: vi.fn(),
   acceptInvitation: vi.fn(),
 }));
-vi.mock("../api/farms", () => ({ fetchFarmMembers: vi.fn() }));
+vi.mock("../api/farms", () => ({ fetchFarmMembers: vi.fn(), fetchFarmStatistics: vi.fn(), fetchFarmDiagnoses: vi.fn() }));
 
 const getSession = vi.mocked(supabase.auth.getSession);
 const fetchMeMock = vi.mocked(fetchMe);
+const fetchFarmStatisticsMock = vi.mocked(fetchFarmStatistics);
 
 const SESSION = {
   access_token: "token",
@@ -83,6 +85,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   getSession.mockResolvedValue({ data: { session: null } });
   fetchMeMock.mockResolvedValue(null);
+  fetchFarmStatisticsMock.mockResolvedValue({
+    farmer_count: 0,
+    total_diagnoses: 0,
+    disease_counts: {},
+    crop_counts: {},
+    recent_diagnoses: [],
+  });
   vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
 });
 

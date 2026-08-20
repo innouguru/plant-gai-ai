@@ -1,24 +1,149 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../../auth/AuthContext";
+import { useDevPreview } from "../../preview/devPreview";
+import { fetchMessages, markMessageRead, sendMessage } from "../../api/messages";
 import PageHeader from "../../components/ui/PageHeader";
 import Avatar from "../../components/ui/Avatar";
 import Icon from "../../components/ui/Icon";
 import Button from "../../components/ui/Button";
-import { EmptyState } from "../../components/ui/States";
+import { EmptyState, ErrorState, LoadingState } from "../../components/ui/States";
 import { devConversations, devConversationById } from "../../data/devMocks";
 
+function formatMessageTime(value) {
+  if (!value) return "";
+  return new Date(value).toLocaleString([], { dateStyle: "short", timeStyle: "short" });
+}
+
+function buildConversations(messages, currentUserId) {
+  const grouped = new Map();
+
+  messages.forEach((message) => {
+    const isOutgoing = message.sender_id === currentUserId;
+    const participantId = isOutgoing ? message.recipient_id : message.sender_id;
+    const participantName = isOutgoing
+      ? message.recipient_name ?? "Farmer"
+      : message.sender_name ?? "Farmer";
+    const conversation = grouped.get(participantId) ?? {
+      id: participantId,
+      farmerName: participantName,
+      messages: [],
+      latestAt: message.created_at,
+      unread: false,
+    };
+
+    conversation.messages.push({
+      id: message.id,
+      from: isOutgoing ? "admin" : "farmer",
+      text: message.body,
+      time: formatMessageTime(message.created_at),
+      readAt: message.read_at,
+      createdAt: message.created_at,
+    });
+    conversation.latestAt = conversation.latestAt > message.created_at
+      ? conversation.latestAt
+      : message.created_at;
+    conversation.unread = conversation.unread || (!isOutgoing && !message.read_at);
+    grouped.set(participantId, conversation);
+  });
+
+  return [...grouped.values()]
+    .map((conversation) => ({
+      ...conversation,
+      messages: conversation.messages.sort((left, right) => left.createdAt.localeCompare(right.createdAt)),
+      preview: conversation.messages.at(-1)?.text ?? "",
+      time: formatMessageTime(conversation.latestAt),
+    }))
+    .sort((left, right) => right.latestAt.localeCompare(left.latestAt));
+}
+
 function MessagesPage() {
-  const [selectedId, setSelectedId] = useState(devConversations[0]?.id ?? null);
+  const { session, profile } = useAuth();
+  const { previewRole } = useDevPreview();
+  const isPreview = previewRole === "farm_admin";
+  const [messages, setMessages] = useState([]);
+  const [selectedId, setSelectedId] = useState(isPreview ? devConversations[0]?.id ?? null : null);
+  const [loading, setLoading] = useState(!isPreview);
+  const [error, setError] = useState(null);
   const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(null);
   const [notice, setNotice] = useState(false);
 
-  const conversation = devConversationById(selectedId);
+  useEffect(() => {
+    if (isPreview || !session) return;
 
-  function handleSend(event) {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    fetchMessages(session.access_token)
+      .then((data) => {
+        if (active) setMessages(data);
+      })
+      .catch((err) => {
+        if (active) setError(err?.message ?? "Could not load messages.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [session, isPreview]);
+
+  const conversations = useMemo(
+    () => (isPreview ? devConversations : buildConversations(messages, profile?.id)),
+    [isPreview, messages, profile?.id],
+  );
+
+  useEffect(() => {
+    if (selectedId && conversations.some((item) => item.id === selectedId)) return;
+    setSelectedId(conversations[0]?.id ?? null);
+  }, [conversations, selectedId]);
+
+  const conversation = isPreview
+    ? devConversationById(selectedId)
+    : conversations.find((item) => item.id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (isPreview || !conversation || !session) return;
+    const unreadMessages = conversation.messages.filter(
+      (message) => message.from === "farmer" && !message.readAt,
+    );
+    unreadMessages.forEach((message) => {
+      markMessageRead(message.id, session.access_token)
+        .then((updated) => {
+          setMessages((current) => current.map((item) => (
+            item.id === updated.id ? updated : item
+          )));
+        })
+        .catch(() => {});
+    });
+  }, [conversation, isPreview, session]);
+
+  async function handleSend(event) {
     event.preventDefault();
-    if (!draft.trim()) return;
-    setNotice(true);
+    if (!draft.trim() || !conversation) return;
+    if (isPreview) {
+      setNotice(true);
+      setDraft("");
+      return;
+    }
+    setSendError(null);
+    setSending(true);
+    try {
+      const sent = await sendMessage(conversation.id, draft.trim(), session.access_token);
+      setMessages((current) => [...current, sent]);
+    } catch (err) {
+      setSendError(err?.message ?? "Could not send the message.");
+      return;
+    } finally {
+      setSending(false);
+    }
     setDraft("");
   }
+
+  if (!isPreview && !profile?.farmId) return null;
 
   return (
     <div aria-label="Messages">
@@ -26,7 +151,7 @@ function MessagesPage() {
 
       <div className="messages-layout">
         <div className="conversation-list" role="list" aria-label="Conversations">
-          {devConversations.map((item) => (
+          {loading ? null : conversations.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -35,7 +160,6 @@ function MessagesPage() {
               aria-current={item.id === selectedId ? "true" : undefined}
               onClick={() => {
                 setSelectedId(item.id);
-                setNotice(false);
               }}
             >
               <Avatar name={item.farmerName} />
@@ -51,7 +175,11 @@ function MessagesPage() {
           ))}
         </div>
 
-        {conversation ? (
+        {loading ? (
+          <LoadingState message="Loading messages..." />
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => window.location.reload()} />
+        ) : conversation ? (
           <section className="thread-card" aria-label={`Conversation with ${conversation.farmerName}`}>
             <div className="thread-header">
               <h2>{conversation.farmerName}</h2>
@@ -80,21 +208,22 @@ function MessagesPage() {
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
               />
-              <Button type="submit" variant="primary" aria-label="Send message">
+              <Button type="submit" variant="primary" aria-label="Send message" disabled={sending}>
                 <Icon name="send" />
               </Button>
             </form>
 
-            {notice ? (
+            {sendError ? (
+              <p className="thread-notice form-error" role="alert">{sendError}</p>
+            ) : notice ? (
               <p className="thread-notice" role="status">
-                Messaging is not connected yet. This feature will be available in a future
-                update, so your message has not been sent.
+                Preview only. This message was not sent.
               </p>
-            ) : (
+            ) : isPreview ? (
               <p className="thread-notice">
                 Messages are a preview of the upcoming messaging feature.
               </p>
-            )}
+            ) : null}
           </section>
         ) : (
           <EmptyState title="No conversation selected" />

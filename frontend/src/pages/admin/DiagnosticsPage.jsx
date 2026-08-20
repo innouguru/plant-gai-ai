@@ -1,30 +1,65 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext";
+import { useDevPreview } from "../../preview/devPreview";
+import { fetchFarmDiagnoses } from "../../api/farms";
 import PageHeader from "../../components/ui/PageHeader";
 import Icon from "../../components/ui/Icon";
 import StatusBadge from "../../components/ui/StatusBadge";
-import { EmptyState } from "../../components/ui/States";
+import { EmptyState, ErrorState, LoadingState } from "../../components/ui/States";
 import { getClassInfo } from "../../data/crops";
 import { formatDateTime } from "../../data/dates";
 import { devRecentFarmDiagnoses } from "../../data/devMocks";
 
 function DiagnosticsPage() {
+  const { profile, session } = useAuth();
+  const { previewRole } = useDevPreview();
+  const isPreview = previewRole === "farm_admin";
+  const farmId = profile?.farmId;
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [diagnoses, setDiagnoses] = useState(isPreview ? devRecentFarmDiagnoses : []);
+  const [loading, setLoading] = useState(!isPreview);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (isPreview || !farmId || !session) return;
+
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    fetchFarmDiagnoses(farmId, session.access_token)
+      .then((data) => {
+        if (active) setDiagnoses(data);
+      })
+      .catch((err) => {
+        if (active) setError(err?.message ?? "Could not load farm diagnoses.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [farmId, session, isPreview]);
 
   const rows = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return devRecentFarmDiagnoses.filter((entry) => {
-      const info = getClassInfo(entry.className);
+    return diagnoses.filter((entry) => {
+      const info = getClassInfo(entry.disease ?? entry.className);
       if (filter !== "all") {
         const status = info.healthy ? "healthy" : "sick";
         if (status !== filter) return false;
       }
       if (!normalized) return true;
-      const searchable = `${entry.farmer} ${info.crop} ${info.diseaseDisplay}`.toLowerCase();
+      const searchable = `${entry.farmer_name ?? entry.farmer} ${info.crop} ${info.diseaseDisplay}`.toLowerCase();
       return searchable.includes(normalized);
     });
-  }, [query, filter]);
+  }, [diagnoses, query, filter]);
+
+  if (!isPreview && !farmId) return null;
 
   return (
     <div aria-label="Diagnostics">
@@ -60,7 +95,11 @@ function DiagnosticsPage() {
         </div>
       </div>
 
-      {rows.length === 0 ? (
+      {loading ? (
+        <LoadingState message="Loading diagnoses..." />
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => window.location.reload()} />
+      ) : rows.length === 0 ? (
         <EmptyState title="No diagnoses found" message="Try a different search or filter." />
       ) : (
         <div className="diag-table-wrap">
@@ -77,12 +116,16 @@ function DiagnosticsPage() {
             </thead>
             <tbody>
               {rows.map((entry) => {
-                const info = getClassInfo(entry.className);
+                const info = getClassInfo(entry.disease ?? entry.className);
+                const farmerName = entry.farmer_name ?? entry.farmer;
+                const confidence = entry.confidence <= 1
+                  ? Math.round(entry.confidence * 100)
+                  : entry.confidence;
                 return (
                   <tr key={entry.id} onClick={() => {}}>
                     <td>
                       <Link to={`/admin/diagnostics/${entry.id}`} className="table-link">
-                        {entry.farmer}
+                        {farmerName}
                       </Link>
                     </td>
                     <td>{info.crop}</td>
@@ -90,8 +133,8 @@ function DiagnosticsPage() {
                     <td>
                       <StatusBadge status={info.healthy ? "healthy" : "sick"} />
                     </td>
-                    <td>{entry.confidence}%</td>
-                    <td>{formatDateTime(entry.scannedAt)}</td>
+                    <td>{confidence}%</td>
+                    <td>{formatDateTime(entry.created_at ?? entry.scannedAt)}</td>
                   </tr>
                 );
               })}

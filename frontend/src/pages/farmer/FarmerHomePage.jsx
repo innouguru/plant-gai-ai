@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { useDevPreview } from "../../preview/devPreview";
+import { fetchHistory } from "../../api/diagnosis";
 import Icon from "../../components/ui/Icon";
 import DiagnosisCard from "../../components/ui/DiagnosisCard";
 import { devFarmerDiagnoses } from "../../data/devMocks";
+import { EmptyState, ErrorState, LoadingState } from "../../components/ui/States";
 
 export function buildFirstName(profile) {
   const name = profile?.fullName || profile?.email || "farmer";
@@ -11,11 +14,24 @@ export function buildFirstName(profile) {
 }
 
 function FarmerHomePage() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const { previewRole, previewProfile } = useDevPreview();
   const displayProfile = previewRole ? previewProfile : profile;
   const firstName = buildFirstName(displayProfile);
-  const recent = devFarmerDiagnoses[0];
+  const isPreview = previewRole === "farmer";
+  const [recent, setRecent] = useState(isPreview ? devFarmerDiagnoses[0] : null);
+  const [loading, setLoading] = useState(!isPreview);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (isPreview || !session) return;
+    let active = true;
+    fetchHistory(session.access_token)
+      .then((items) => { if (active) setRecent(items[0] ?? null); })
+      .catch((err) => { if (active) setError(err?.message ?? "Could not load your recent diagnosis."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [session, isPreview]);
 
   return (
     <div className="farmer-home">
@@ -41,9 +57,20 @@ function FarmerHomePage() {
         </Link>
       </div>
 
-      <div className="diagnosis-list">
-        <DiagnosisCard to={`/history/${recent.id}`} {...recent} />
-      </div>
+      {loading ? <LoadingState message="Loading recent diagnosis..." /> : error ? (
+        <ErrorState message={error} />
+      ) : recent ? (
+        <div className="diagnosis-list">
+          <DiagnosisCard
+            to={`/history/${recent.id}`}
+            {...(recent.disease ? {
+              className: recent.disease,
+              confidence: Math.round(recent.confidence * 100),
+              scannedAt: recent.created_at,
+            } : recent)}
+          />
+        </div>
+      ) : <EmptyState title="No diagnoses yet" message="Your latest diagnosis will appear here." />}
 
       <aside className="tip-card">
         <span className="tip-icon">

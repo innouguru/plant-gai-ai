@@ -17,6 +17,11 @@ _STATUS_BY_CODE: dict[str, tuple[int, str]] = {
     "profile_update_failed": (400, "Could not update your profile."),
     "diagnosis_save_failed": (400, "We could not save your diagnosis. Please try again."),
     "diagnosis_forbidden": (403, "Only farmers on a farm can run a diagnosis."),
+    "farm_stats_forbidden": (403, "You do not have permission to view this farm."),
+    "farm_statistics_failed": (502, "Could not load farm statistics."),
+    "message_send_failed": (400, "Could not send the message."),
+    "message_forbidden": (403, "You do not have permission to use messaging with this user."),
+    "message_not_found": (404, "That message could not be found."),
 }
 
 _BACKEND_DEFAULT = "An external service error occurred. Please try again."

@@ -276,6 +276,31 @@ def test_history_detail_returns_own_diagnosis(provider, client, diagnosis_servic
     assert body["created_at"]
 
 
+def test_admin_can_retrieve_diagnosis_from_own_farm(provider, client, make_token):
+    farm = provider.seed_farm(name="Farm A", admin_id=provider.new_id("a-"))
+    admin = provider.seed_admin(farm_id=farm.id)
+    farmer = provider.seed_farmer(email="farmer@example.com", farm_id=farm.id)
+    row = provider.seed_diagnosis(farmer_id=farmer.id, farm_id=farm.id, disease="Cassava mosaic")
+
+    response = client.get(f"{URL}/{row.id}", headers=_auth(make_token(admin.id, admin.email)))
+
+    assert response.status_code == 200
+    assert response.json()["id"] == row.id
+    assert response.json()["farmer_id"] == farmer.id
+
+
+def test_admin_cannot_retrieve_diagnosis_from_another_farm(provider, client, make_token):
+    own = provider.seed_farm(name="Own Farm", admin_id=provider.new_id("o-"))
+    other = provider.seed_farm(name="Other Farm", admin_id=provider.new_id("x-"))
+    admin = provider.seed_admin(farm_id=own.id)
+    farmer = provider.seed_farmer(email="other@example.com", farm_id=other.id)
+    row = provider.seed_diagnosis(farmer_id=farmer.id, farm_id=other.id)
+
+    response = client.get(f"{URL}/{row.id}", headers=_auth(make_token(admin.id, admin.email)))
+
+    assert response.status_code == 404
+
+
 def test_history_detail_unknown_id_returns_404(provider, client, diagnosis_service, make_token):
     _, token = _seed_farmer(provider, make_token)
     response = client.get(f"{URL}/does-not-exist", headers=_auth(token))

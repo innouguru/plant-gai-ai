@@ -4,7 +4,8 @@ from fastapi import HTTPException
 
 from app.db.interface import DataProvider
 from app.schemas.domain import Farm, Profile
-from app.schemas.farms import FarmMember
+from app.schemas.farms import FarmDiagnosis, FarmMember
+from app.schemas.statistics import FarmStatistics
 from app.schemas.onboarding import OnboardingResponse
 from app.services.user_service import require_farm_admin, to_profile_response
 
@@ -61,3 +62,32 @@ def list_farm_members(
         FarmMember(id=member.id, email=member.email, full_name=member.full_name, role=member.role)
         for member in members
     ]
+
+
+def get_farm_statistics(
+    provider: DataProvider,
+    token: str,
+    profile: Profile,
+    farm_id: str,
+) -> FarmStatistics:
+    """Return statistics only for the authenticated admin's own farm."""
+    require_farm_admin(profile)
+    if profile.farm_id != farm_id:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this farm.")
+    return provider.get_farm_statistics(token, farm_id)
+
+
+def list_farm_diagnoses(
+    provider: DataProvider,
+    token: str,
+    profile: Profile,
+    farm_id: str,
+    *,
+    limit: int,
+    offset: int,
+) -> list[FarmDiagnosis]:
+    """Return paginated diagnoses only for the admin's own farm."""
+    require_farm_admin(profile)
+    if profile.farm_id != farm_id:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this farm.")
+    return provider.list_farm_diagnoses(token, farm_id, limit=limit, offset=offset)

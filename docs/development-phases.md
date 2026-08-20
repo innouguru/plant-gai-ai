@@ -19,7 +19,7 @@ only the phase requested and must not start a later phase early.
 | Done | Supabase scaffolding (no features) |
 | Done | ML inference scaffolding (no model loading) |
 
-## Phase 1 — Accounts and farms (CURRENT)
+## Phase 1 — Accounts and farms (done)
 
 | Status | Deliverable |
 | --- | --- |
@@ -32,27 +32,27 @@ only the phase requested and must not start a later phase early.
 | Done | `FRONTEND_ORIGIN` / Supabase environment wiring + docs update |
 
 Acceptance: authenticated flows work end to end with a configured Supabase
-project; backend and frontend test suites pass. Diagnosis, camera, storage,
-history, statistics, and messaging are intentionally **not** implemented.
+project; backend and frontend test suites pass.
 
-## Phase 2 — Diagnosis (planned)
+## Phase 2 — Diagnosis (done)
 
-- Verify original training/inference configuration.
-- Implement preprocessing and real inference with the final model.
-- Photo upload to Supabase Storage.
-- `diagnoses` table + create/history endpoints.
-- Frontend camera/upload UI and diagnosis result screen.
+- Real ResNet-18 inference using the final model and verified preprocessing.
+- Persisted diagnosis records with farm and farmer ownership derived from auth.
+- `POST /api/v1/diagnosis`, `GET /api/v1/diagnosis/history`, and authorized
+  diagnosis detail endpoints.
+- Frontend photo upload, diagnosis result, history, and detail screens.
 
-## Phase 3 — Farm features and messaging (planned)
+## Phase 3 — Farm features and messaging (done)
 
 - Farm-level statistics and diagnostic health views.
-- Farmer and farm administrator dashboard views.
-- `messages` table + inbox/send endpoints.
-- Frontend messaging screens.
+- Admin farm diagnosis feed and authorized diagnosis detail views.
+- Farmer and farm administrator dashboard/report views using persisted data.
+- Farm-scoped `messages` table with inbox, send, and read-state endpoints.
+- Frontend messaging screen using the real API in authenticated mode and local
+  development preview data in preview mode.
 
 ## Phase 4 — Administration and polish (planned)
 
-- Admin dashboard (farm/diagnostic overview).
 - Monitoring, rate limits, error tracking.
 - Accessibility and performance hardening.
 

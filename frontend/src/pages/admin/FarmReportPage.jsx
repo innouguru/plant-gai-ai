@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { useDevPreview } from "../../preview/devPreview";
+import { fetchFarmStatistics } from "../../api/farms";
 import PageHeader from "../../components/ui/PageHeader";
 import Button from "../../components/ui/Button";
 import Icon from "../../components/ui/Icon";
@@ -7,16 +9,54 @@ import StatusBadge from "../../components/ui/StatusBadge";
 import { getClassInfo } from "../../data/crops";
 import { formatDate, formatDateTime } from "../../data/dates";
 import { devFarmReport } from "../../data/devMocks";
+import { EmptyState, ErrorState, LoadingState } from "../../components/ui/States";
 
 function FarmReportPage() {
-  const { profile } = useAuth();
-  const farmName = profile?.farm?.name ?? "Green Valley Farm";
-  const report = devFarmReport;
-  const [reportDate, setReportDate] = useState(report.reportDate);
+  const { profile, session } = useAuth();
+  const { previewRole, previewProfile } = useDevPreview();
+  const isPreview = previewRole === "farm_admin";
+  const farmId = profile?.farmId;
+  const [statistics, setStatistics] = useState(null);
+  const [loading, setLoading] = useState(!isPreview);
+  const [error, setError] = useState(null);
+  const [reportDate, setReportDate] = useState(new Date().toISOString());
+
+  useEffect(() => {
+    if (isPreview || !farmId || !session) return;
+    let active = true;
+    setLoading(true);
+    setError(null);
+    fetchFarmStatistics(farmId, session.access_token)
+      .then((data) => { if (active) setStatistics(data); })
+      .catch((err) => { if (active) setError(err?.message ?? "Could not load farm statistics."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [farmId, session, isPreview]);
+
+  if (!isPreview && !farmId) return null;
+
+  const farmName = isPreview ? previewProfile?.farm?.name ?? "Green Valley Farm" : profile?.farm?.name;
+  const report = isPreview ? devFarmReport : statistics;
 
   function generateReport() {
     setReportDate(new Date().toISOString());
   }
+
+  if (loading) return <LoadingState message="Loading farm report..." />;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
+  if (!report) return <EmptyState title="No report data yet" message="Farm statistics will appear here after diagnoses are recorded." />;
+
+  const totalDiagnoses = isPreview ? report.totalDiagnoses : report.total_diagnoses;
+  const healthyDiagnoses = isPreview ? report.healthyDiagnoses : report.healthy_diagnoses;
+  const diseasedDiagnoses = isPreview ? report.sickDiagnoses : report.diseased_diagnoses;
+  const identifiedDiseases = isPreview
+    ? report.identifiedDiseases
+    : Object.keys(report.disease_counts ?? {}).filter((disease) => !getClassInfo(disease).healthy).length;
+  const cropsScanned = isPreview
+    ? report.cropsScanned
+    : Object.entries(report.crop_counts ?? {}).map(([crop, count]) => ({ crop, count }));
+  const topDiseases = isPreview ? report.topDiseases : report.top_diseases;
+  const recentDiagnoses = isPreview ? report.recentDiagnoses : report.recent_diagnoses;
 
   return (
     <div aria-label="Farm report">
@@ -52,15 +92,15 @@ function FarmReportPage() {
             </div>
             <div className="report-stat">
               <span className="report-stat-label">Diagnoses</span>
-              <span className="report-stat-value">{report.totalDiagnoses}</span>
+              <span className="report-stat-value">{totalDiagnoses}</span>
             </div>
             <div className="report-stat">
               <span className="report-stat-label">Healthy</span>
-              <span className="report-stat-value report-stat-healthy">{report.healthyDiagnoses}</span>
+              <span className="report-stat-value report-stat-healthy">{healthyDiagnoses}</span>
             </div>
             <div className="report-stat">
               <span className="report-stat-label">Sick</span>
-              <span className="report-stat-value report-stat-sick">{report.sickDiagnoses}</span>
+              <span className="report-stat-value report-stat-sick">{diseasedDiagnoses}</span>
             </div>
             <div className="report-stat">
               <span className="report-stat-label">Diseases</span>
@@ -72,7 +112,7 @@ function FarmReportPage() {
         <section className="report-section" aria-label="Crops scanned">
           <h2>Crops scanned</h2>
           <ul className="report-list">
-            {report.cropsScanned.map((item) => (
+            {cropsScanned.map((item) => (
               <li key={item.crop}>
                 {item.crop} — {item.count} scans
               </li>
@@ -83,7 +123,7 @@ function FarmReportPage() {
         <section className="report-section" aria-label="Identified diseases">
           <h2>Identified diseases</h2>
           <ul className="report-list">
-            {report.topDiseases.map((item) => (
+            {topDiseases.map((item) => (
               <li key={item.disease}>
                 {item.disease} — {item.count} cases
               </li>
@@ -106,18 +146,20 @@ function FarmReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {report.recentDiagnoses.map((entry) => {
-                  const info = getClassInfo(entry.className);
+                {recentDiagnoses.map((entry) => {
+                  const info = getClassInfo(entry.disease ?? entry.className);
+                  const farmerName = entry.farmer_name ?? entry.farmer;
+                  const confidence = entry.confidence <= 1 ? Math.round(entry.confidence * 100) : entry.confidence;
                   return (
                     <tr key={entry.id}>
-                      <td>{entry.farmer}</td>
+                      <td>{farmerName}</td>
                       <td>{info.crop}</td>
                       <td>{info.diseaseDisplay}</td>
                       <td>
                         <StatusBadge status={info.healthy ? "healthy" : "sick"} />
                       </td>
-                      <td>{entry.confidence}%</td>
-                      <td>{formatDateTime(entry.scannedAt)}</td>
+                      <td>{confidence}%</td>
+                      <td>{formatDateTime(entry.created_at ?? entry.scannedAt)}</td>
                     </tr>
                   );
                 })}
@@ -129,8 +171,8 @@ function FarmReportPage() {
         <section className="report-section" aria-label="Health summary">
           <h2>Health summary</h2>
           <p>
-            {report.healthyDiagnoses} of {report.totalDiagnoses} diagnoses were healthy.{" "}
-            {report.sickDiagnoses} plants needed attention. Keep monitoring your crops and
+            {healthyDiagnoses} of {totalDiagnoses} diagnoses were healthy.{" "}
+            {diseasedDiagnoses} plants needed attention. Keep monitoring your crops and
             record any new signs early.
           </p>
         </section>
