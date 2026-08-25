@@ -5,15 +5,17 @@ services:
     runtime: python
     rootDir: backend
     buildCommand: >-
-      pip install -r requirements.txt &&
+      pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu &&
       mkdir -p ../model/weights &&
-      hf download innouguru/plant-gai-ai-resnet18
+      python -m huggingface_hub.cli.hf download innouguru/plant-gai-ai-resnet18
       plant_disease_resnet18_best.pth
       --revision de9af1df1a114f5db6bd8dddc1d800347a2748f3
       --local-dir ../model/weights
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/v1/health
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.13"
       - key: APP_ENV
         value: production
       - key: DEBUG
