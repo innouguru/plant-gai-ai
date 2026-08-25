@@ -40,12 +40,8 @@ services:
         value: redis
       - key: RATE_LIMIT_REDIS_URL
         fromService:
-          name: plant-gai-ai-cache
+          name: plant-gai-ai-redis
           type: keyvalue
           property: connectionString
       - key: RATE_LIMIT_FAIL_MODE
         value: closed
-  - type: keyvalue
-    name: plant-gai-ai-cache
-    plan: free
-    ipAllowList: []
