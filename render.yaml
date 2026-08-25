@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: plant-gai-ai-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      mkdir -p ../model/weights &&
+      hf download innouguru/plant-gai-ai-resnet18
+      plant_disease_resnet18_best.pth
+      --revision de9af1df1a114f5db6bd8dddc1d800347a2748f3
+      --local-dir ../model/weights
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "0"
+      - key: HF_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: RATE_LIMIT_STORAGE
+        value: redis
+      - key: RATE_LIMIT_REDIS_URL
+        sync: false
+      - key: RATE_LIMIT_FAIL_MODE
+        value: closed
