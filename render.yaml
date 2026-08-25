@@ -1,6 +1,7 @@
 services:
   - type: web
     name: plant-gai-ai-backend
+    plan: free
     runtime: python
     rootDir: backend
     buildCommand: >-
