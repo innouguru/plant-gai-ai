@@ -32,7 +32,7 @@ _BACKEND_DEFAULT = "An external service error occurred. Please try again."
 def provider_error_to_response(request: Request, exc: ProviderError) -> JSONResponse:
     """Global handler that converts provider errors into safe user messages."""
     status_code, detail = _STATUS_BY_CODE.get(exc.code, (502, _BACKEND_DEFAULT))
-    log_provider_error(request, exc.code, status_code)
+    log_provider_error(request, exc.code, status_code, supabase_status=getattr(exc, "supabase_status", None))
     return JSONResponse(
         status_code=status_code,
         content={"detail": detail},

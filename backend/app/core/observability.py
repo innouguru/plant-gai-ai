@@ -68,6 +68,7 @@ def record_error_event(
     error_code: str | None = None,
     exception_type: str | None = None,
     traceback_locations: str | None = None,
+    supabase_status: int | None = None,
 ) -> None:
     """Record a structured error event without exception text or request data."""
     extra = {
@@ -83,10 +84,12 @@ def record_error_event(
         extra["exception_type"] = exception_type
     if traceback_locations is not None:
         extra["traceback_locations"] = traceback_locations
+    if supabase_status is not None:
+        extra["supabase_status"] = supabase_status
     logger.log(level, event_type, extra=extra)
 
 
-def log_provider_error(request: Request, code: str, status_code: int) -> None:
+def log_provider_error(request: Request, code: str, status_code: int, supabase_status: int | None = None) -> None:
     """Log only a safe provider error code and request context."""
     record_error_event(
         request,
@@ -94,6 +97,7 @@ def log_provider_error(request: Request, code: str, status_code: int) -> None:
         status_code=status_code,
         level=logging.WARNING,
         error_code=code,
+        supabase_status=supabase_status,
     )
 
 

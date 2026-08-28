@@ -360,7 +360,11 @@ class SupabaseDataProvider:
             message = str(payload.get("message", ""))
         except ValueError:
             pass
-        raise ProviderError(code, message or f"Supabase request failed with status {response.status_code}.")
+        raise ProviderError(
+            code,
+            message or f"Supabase request failed with status {response.status_code}.",
+            supabase_status=response.status_code,
+        )
 
 
 def build_provider(url: str, anon_key: str, service_role_key: str) -> SupabaseDataProvider:
