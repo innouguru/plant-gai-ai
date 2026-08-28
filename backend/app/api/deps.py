@@ -58,7 +58,7 @@ def get_current_user(
     if cached is not None:
         return cached
     settings = get_settings()
-    if not settings.supabase_jwt_secret:
+    if not settings.supabase_url:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Authentication is not configured on the server.",
