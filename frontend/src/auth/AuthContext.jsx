@@ -110,6 +110,13 @@ export function AuthProvider({ children }) {
         return;
       }
 
+      if (event === "PASSWORD_RECOVERY") {
+        if (nextSession) {
+          setSession(nextSession);
+        }
+        return;
+      }
+
       if (nextSession) {
         setSession(nextSession);
         setStatus("authenticated");

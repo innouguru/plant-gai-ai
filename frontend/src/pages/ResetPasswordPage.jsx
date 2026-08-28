@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../auth/supabase";
 import { getHashParams } from "../auth/hashParams";
@@ -13,7 +13,16 @@ function ResetPasswordPage() {
   const [updated, setUpdated] = useState(false);
   const [error, setError] = useState(null);
 
-  const isRecoveryLink = getHashParams().get("type") === "recovery";
+  const [isRecovery, setIsRecovery] = useState(() => getHashParams().get("type") === "recovery");
+
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsRecovery(true);
+      }
+    });
+    return () => listener?.subscription?.unsubscribe();
+  }, []);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -40,7 +49,7 @@ function ResetPasswordPage() {
     setUpdated(true);
   }
 
-  if (!isRecoveryLink && !updated) {
+  if (!isRecovery && !updated) {
     return (
       <section className="auth-shell" aria-label="Invalid reset link">
         <div className="auth-card">
