@@ -17,7 +17,6 @@ import uuid
 import httpx
 import jwt
 from fastapi import HTTPException, status
-from jwt.algorithms import ECAlgorithm
 
 _EXPIRED_MESSAGE = "Your session has expired. Please log in again."
 _INVALID_MESSAGE = "Invalid or missing access token."
@@ -105,7 +104,8 @@ def _public_key_for_kid(kid: str):
     for key_dict in keys:
         if key_dict.get("kid") == kid:
             try:
-                return ECAlgorithm.from_jwk(json.dumps(key_dict))
+                jwk = jwt.PyJWK(key_dict)
+                return jwk.key
             except Exception as exc:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
