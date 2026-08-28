@@ -1,5 +1,7 @@
 """Farmer invitation domain logic."""
 
+import logging
+
 from fastapi import HTTPException
 
 from app.core.config import get_settings
@@ -11,6 +13,8 @@ from app.schemas.invitations import (
     InvitationResponse,
 )
 from app.services.user_service import require_farm_admin, to_profile_response
+
+logger = logging.getLogger("app.observability")
 
 
 def invite_farmer(
@@ -34,7 +38,17 @@ def invite_farmer(
             redirect_to,
         )
     except ProviderError:
-        provider.delete_invitation(invitation.id)
+        try:
+            provider.delete_invitation(invitation.id)
+        except ProviderError as rollback_err:
+            logger.warning(
+                f"invitation_rollback_failed error_code={rollback_err.code} supabase_status={getattr(rollback_err, 'supabase_status', 'unknown')}",
+                extra={
+                    "error_code": rollback_err.code,
+                    "supabase_status": getattr(rollback_err, "supabase_status", None),
+                    "event_type": "invitation_rollback_failed",
+                },
+            )
         raise HTTPException(
             status_code=400,
             detail="We could not send this invitation. The email may already be registered.",

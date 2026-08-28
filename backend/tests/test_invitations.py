@@ -81,6 +81,76 @@ def test_failed_invite_is_cleaned_up(client, provider, make_token):
     assert provider.invitations == {}
 
 
+def test_failed_invite_rollback_failure_still_returns_400(client, provider, make_token, monkeypatch, caplog):
+    import logging
+
+    from app.db.errors import ProviderError
+
+    farm = provider.seed_farm(name="Farm A", admin_id=provider.new_id("a-"))
+    admin = provider.seed_admin(farm_id=farm.id)
+    provider.fail_invite_emails.add("rollback-fail@example.com")
+    token = make_token(admin.id, email=admin.email)
+
+    def failing_delete(invitation_id: str):
+        raise ProviderError("42501", "permission denied for table invitations", supabase_status=403)
+
+    monkeypatch.setattr(provider, "delete_invitation", failing_delete)
+
+    import logging as _logging
+
+    with caplog.at_level(_logging.WARNING, logger="app.observability"):
+        response = client.post(
+            "/api/v1/invitations",
+            json={"email": "rollback-fail@example.com"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    # Must still return 400 for original Auth failure, not 502
+    assert response.status_code == 400
+    assert "could not send" in response.json()["detail"].lower()
+    # Rollback was attempted and logged with sanitized fields
+    assert any("invitation_rollback_failed" in r.message for r in caplog.records)
+    record = next(r for r in caplog.records if "invitation_rollback_failed" in r.message)
+    assert "42501" in record.message
+    assert "403" in record.message
+    assert record.error_code == "42501"
+    assert record.supabase_status == 403
+    # No secrets in log
+    assert "Bearer" not in caplog.text
+    assert "rollback-fail@example.com" not in caplog.text
+    # Invitation remains as orphan (best-effort rollback failed) but endpoint did not 502
+    assert len(provider.invitations) == 1
+
+
+def test_failed_invite_rollback_does_not_expose_secrets(client, provider, make_token, monkeypatch, caplog):
+    import logging
+
+    from app.db.errors import ProviderError
+
+    farm = provider.seed_farm(name="Farm A", admin_id=provider.new_id("a-"))
+    admin = provider.seed_admin(farm_id=farm.id)
+    provider.fail_invite_emails.add("secret-test@example.com")
+    token = make_token(admin.id, email=admin.email)
+
+    def failing_delete(invitation_id: str):
+        raise ProviderError("42501", "permission denied", supabase_status=403)
+
+    monkeypatch.setattr(provider, "delete_invitation", failing_delete)
+
+    with caplog.at_level(logging.WARNING, logger="app.observability"):
+        response = client.post(
+            "/api/v1/invitations",
+            json={"email": "secret-test@example.com"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert response.status_code == 400
+    # Ensure no token, email, or key material leaked
+    assert "secret-test@example.com" not in caplog.text
+    assert "Bearer" not in caplog.text
+    assert "apikey" not in caplog.text.lower()
+
+
 # ---------------------------------------------------------------------------
 # Invitation acceptance
 # ---------------------------------------------------------------------------
