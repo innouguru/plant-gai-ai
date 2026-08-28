@@ -36,6 +36,44 @@ def test_admin_can_invite_farmer_to_own_farm(client, provider, make_token):
     assert sent["metadata"]["farm_id"] == farm.id
 
 
+def test_invite_uses_current_supabase_invite_endpoint(monkeypatch):
+    import httpx
+
+    from app.db.supabase_provider import SupabaseDataProvider
+
+    provider = SupabaseDataProvider(
+        url="https://example.supabase.co", anon_key="anon", service_role_key="service"
+    )
+    captured: dict = {}
+
+    def fake_post(url, headers=None, json=None, params=None):
+        captured["url"] = url
+        captured["json"] = json
+        captured["params"] = params
+        captured["headers"] = headers
+        request = httpx.Request("POST", url)
+        return httpx.Response(200, request=request, content=b'{"id":"user-id"}', headers={"Content-Type": "application/json"})
+
+    monkeypatch.setattr(provider._client, "post", fake_post)
+
+    provider.invite_user_by_email(
+        "farmer@example.com",
+        {"invited_name": "Jane Farmer", "farm_id": "farm-123"},
+        "https://plant-gai-ai.vercel.app/complete-registration",
+    )
+
+    assert captured["url"] == "https://example.supabase.co/auth/v1/invite"
+    assert captured["json"]["email"] == "farmer@example.com"
+    assert captured["json"]["data"]["invited_name"] == "Jane Farmer"
+    assert captured["json"]["data"]["farm_id"] == "farm-123"
+    assert captured["params"]["redirect_to"] == "https://plant-gai-ai.vercel.app/complete-registration"
+    assert "invite" not in captured["json"]
+    assert "options" not in captured["json"]
+    assert "user_metadata" not in captured["json"]
+    # service_role headers used
+    assert captured["headers"]["apikey"] == "service"
+
+
 def test_farmer_cannot_create_invitation(client, provider, make_token):
     farm = provider.seed_farm(name="Farm A", admin_id=provider.new_id("a-"))
     provider.seed_admin(farm_id=farm.id)

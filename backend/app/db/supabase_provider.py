@@ -182,14 +182,10 @@ class SupabaseDataProvider:
         self, email: str, metadata: dict[str, str] | None, redirect_to: str
     ) -> None:
         response = self._client.post(
-            f"{self._url}/auth/v1/admin/users",
+            f"{self._url}/auth/v1/invite",
             headers=self._service_headers(),
-            json={
-                "email": email,
-                "invite": True,
-                "options": {"redirect_to": redirect_to},
-                "user_metadata": metadata or {},
-            },
+            json={"email": email, "data": metadata or {}},
+            params={"redirect_to": redirect_to} if redirect_to else None,
         )
         self._raise_for_status(response)
 
