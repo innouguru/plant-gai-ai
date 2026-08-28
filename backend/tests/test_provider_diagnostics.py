@@ -61,11 +61,13 @@ def test_provider_error_unknown_code_maps_to_502_generic_detail(caplog):
 
     body = _json.loads(response.body)
     assert body == {"detail": "An external service error occurred. Please try again."}
-    # Logging must contain sanitized fields only
-    record = next(r for r in caplog.records if r.message == "provider_error")
+    # Logging must contain sanitized fields only - visible in plain message and structured extra
+    record = next(r for r in caplog.records if "provider_error" in r.message)
     assert record.error_code == "401"
     assert record.supabase_status == 401
     assert record.status_code == 502  # mapped HTTP status
+    assert "supabase_status=401" in record.message
+    assert "error_code=401" in record.message
     # Ensure no secrets in log text
     assert "Bearer" not in caplog.text
     assert "apikey" not in caplog.text.lower()
@@ -83,9 +85,11 @@ def test_provider_error_known_code_still_uses_specific_detail(caplog):
     import json as _json
 
     assert _json.loads(response.body) == {"detail": "Could not load farm statistics."}
-    record = next(r for r in caplog.records if r.message == "provider_error")
+    record = next(r for r in caplog.records if "provider_error" in r.message)
     assert record.supabase_status == 500
     assert record.error_code == "farm_statistics_failed"
+    assert "supabase_status=500" in record.message
+    assert "error_code=farm_statistics_failed" in record.message
 
 
 def test_provider_error_without_supabase_status_still_logs_safely(caplog):
@@ -96,9 +100,11 @@ def test_provider_error_without_supabase_status_still_logs_safely(caplog):
     with caplog.at_level(logging.WARNING, logger="app.observability"):
         response = provider_error_to_response(request, err)
     assert response.status_code == 401
-    record = next(r for r in caplog.records if r.message == "provider_error")
+    record = next(r for r in caplog.records if "provider_error" in r.message)
     # supabase_status is None when not provided
     assert getattr(record, "supabase_status", None) is None
+    assert "error_code=not_authenticated" in record.message
+    assert "supabase_status" not in record.message  # no status when None
 
 
 def test_get_profile_502_includes_supabase_status_via_provider(monkeypatch, caplog):
@@ -126,6 +132,9 @@ def test_get_profile_502_includes_supabase_status_via_provider(monkeypatch, capl
     with caplog.at_level(logging.WARNING, logger="app.observability"):
         response = provider_error_to_response(request, exc.value)
     assert response.status_code == 502
+    record = next(r for r in caplog.records if "provider_error" in r.message)
+    assert "supabase_status=401" in record.message
+    assert "error_code=PGRST301" in record.message
     assert "secret-should-not-log" not in caplog.text
     assert "anon-key-should-not-log" not in caplog.text
     assert "Bearer" not in caplog.text

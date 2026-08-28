@@ -91,14 +91,21 @@ def record_error_event(
 
 def log_provider_error(request: Request, code: str, status_code: int, supabase_status: int | None = None) -> None:
     """Log only a safe provider error code and request context."""
-    record_error_event(
-        request,
-        "provider_error",
-        status_code=status_code,
-        level=logging.WARNING,
-        error_code=code,
-        supabase_status=supabase_status,
-    )
+    if supabase_status is not None:
+        message = f"provider_error supabase_status={supabase_status} error_code={code}"
+    else:
+        message = f"provider_error error_code={code}"
+    extra = {
+        "request_id": get_request_id(request),
+        "method": request.method,
+        "path": request.url.path,
+        "status_code": status_code,
+        "event_type": "provider_error",
+        "error_code": code,
+    }
+    if supabase_status is not None:
+        extra["supabase_status"] = supabase_status
+    logger.log(logging.WARNING, message, extra=extra)
 
 
 def unexpected_error_to_response(request: Request, exc: Exception) -> JSONResponse:

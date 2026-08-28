@@ -68,11 +68,12 @@ def test_provider_errors_keep_mapping_and_log_safely(client, caplog) -> None:
     assert response.status_code == 403
     assert response.json() == {"detail": "You do not have permission to use messaging with this user."}
     assert response.headers["X-Request-ID"] == "provider-request"
-    record = next(record for record in caplog.records if record.message == "provider_error")
+    record = next(record for record in caplog.records if "provider_error" in record.message)
     assert record.request_id == "provider-request"
     assert record.error_code == "message_forbidden"
     assert record.event_type == "provider_error"
     assert record.status_code == 403
+    assert "error_code=message_forbidden" in record.message
     assert "provider details must stay private" not in caplog.text
 
 
