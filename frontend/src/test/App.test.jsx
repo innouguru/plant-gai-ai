@@ -117,7 +117,7 @@ describe("App routing", () => {
 
     renderApp("/");
 
-    expect(await screen.findByRole("heading", { name: /A kuabo, Ada!/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Welcome back, Ada!/ })).toBeInTheDocument();
   });
 
   it("keeps farmers out of admin routes", async () => {
@@ -126,7 +126,7 @@ describe("App routing", () => {
 
     renderApp("/admin");
 
-    expect(await screen.findByRole("heading", { name: /A kuabo, Ada!/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Welcome back, Ada!/ })).toBeInTheDocument();
   });
 
   it("shows the admin dashboard to a farm admin", async () => {
@@ -178,6 +178,6 @@ describe("App routing", () => {
     renderApp("/home");
 
     expect(await screen.findByRole("button", { name: "Log in" })).toBeInTheDocument();
-    expect(screen.queryByText(/A kuabo, Ada!/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Welcome back, Ada!/)).not.toBeInTheDocument();
   });
 });

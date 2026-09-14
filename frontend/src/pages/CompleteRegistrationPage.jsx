@@ -8,6 +8,7 @@ import { LOADING_TEXT } from "../routing/ProtectedRoutes";
 import Logo from "../components/ui/Logo";
 import Button from "../components/ui/Button";
 import FormField from "../components/ui/FormField";
+import PasswordField from "../components/ui/PasswordField";
 
 function CompleteRegistrationPage() {
   const { status, session, profile, refreshProfile } = useAuth();
@@ -113,28 +114,24 @@ function CompleteRegistrationPage() {
             />
           </FormField>
 
-          <FormField id="password" label="Password">
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="new-password"
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </FormField>
+          <PasswordField
+            id="password"
+            label="Password"
+            required
+            autoComplete="new-password"
+            minLength={6}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
 
-          <FormField id="confirmPassword" label="Confirm password">
-            <input
-              id="confirmPassword"
-              type="password"
-              required
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-            />
-          </FormField>
+          <PasswordField
+            id="confirmPassword"
+            label="Confirm password"
+            required
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+          />
 
           {error && (
             <p className="form-error form-message" role="alert">

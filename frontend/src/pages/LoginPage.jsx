@@ -5,6 +5,7 @@ import { useDevPreview } from "../preview/devPreview";
 import Logo from "../components/ui/Logo";
 import Button from "../components/ui/Button";
 import FormField from "../components/ui/FormField";
+import PasswordField from "../components/ui/PasswordField";
 
 function LoginPage() {
   const { signIn } = useAuth();
@@ -55,16 +56,14 @@ function LoginPage() {
             />
           </FormField>
 
-          <FormField id="password" label="Password">
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </FormField>
+          <PasswordField
+            id="password"
+            label="Password"
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
 
           {error && (
             <p className="form-error form-message" role="alert">

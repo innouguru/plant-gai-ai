@@ -6,6 +6,7 @@ import { completeOnboarding } from "../api/onboarding";
 import Logo from "../components/ui/Logo";
 import Button from "../components/ui/Button";
 import FormField from "../components/ui/FormField";
+import PasswordField from "../components/ui/PasswordField";
 
 function AdminSignupPage() {
   const { refreshProfile } = useAuth();
@@ -69,17 +70,15 @@ function AdminSignupPage() {
             />
           </FormField>
 
-          <FormField id="password" label="Password">
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="new-password"
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </FormField>
+          <PasswordField
+            id="password"
+            label="Password"
+            required
+            autoComplete="new-password"
+            minLength={6}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
 
           <FormField id="farmName" label="Farm name">
             <input

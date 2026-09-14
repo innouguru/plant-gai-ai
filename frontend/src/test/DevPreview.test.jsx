@@ -94,7 +94,7 @@ describe("development UI preview", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Farmer" }));
 
-    expect(await screen.findByRole("heading", { name: /A kuabo, Amina!/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Welcome back, Amina!/ })).toBeInTheDocument();
     expect(window.localStorage.getItem(DEV_PREVIEW_ROLE_KEY)).toBe("farmer");
   });
 
@@ -114,7 +114,7 @@ describe("development UI preview", () => {
 
     renderApp("/admin");
 
-    await screen.findByRole("heading", { name: /A kuabo, Amina!/ });
+    await screen.findByRole("heading", { name: /Welcome back, Amina!/ });
     expect(screen.queryByRole("heading", { name: "Green Valley Farm" })).not.toBeInTheDocument();
   });
 

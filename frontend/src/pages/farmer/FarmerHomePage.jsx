@@ -35,8 +35,8 @@ function FarmerHomePage() {
 
   return (
     <div className="farmer-home">
-      <h1 className="home-greeting">A kuabo, {firstName}!</h1>
-      <p className="home-welcome">Welcome back. How are your crops doing today?</p>
+      <h1 className="home-greeting">Welcome back, {firstName}!</h1>
+      <p className="home-welcome">Check your crops, track their health, and get help when you need it.</p>
 
       <div className="scan-card">
         <span className="scan-card-icon">

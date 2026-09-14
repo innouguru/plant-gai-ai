@@ -135,7 +135,7 @@ describe("auth flows", () => {
     fireEvent.click(screen.getByRole("button", { name: "Log in" }));
 
     expect(
-      await screen.findByRole("heading", { name: /A kuabo, Ada!/ }),
+      await screen.findByRole("heading", { name: /Welcome back, Ada!/ }),
     ).toBeInTheDocument();
   });
 
@@ -196,7 +196,7 @@ describe("auth flows", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(
-      await screen.findByRole("heading", { name: /A kuabo, Bella!/ }),
+      await screen.findByRole("heading", { name: /Welcome back, Bella!/ }),
     ).toBeInTheDocument();
   });
 

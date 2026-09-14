@@ -4,7 +4,7 @@ import { supabase } from "../auth/supabase";
 import { getHashParams } from "../auth/hashParams";
 import Logo from "../components/ui/Logo";
 import Button from "../components/ui/Button";
-import FormField from "../components/ui/FormField";
+import PasswordField from "../components/ui/PasswordField";
 
 function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -86,28 +86,24 @@ function ResetPasswordPage() {
           <h1>Set a new password</h1>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <FormField id="password" label="New password">
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="new-password"
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </FormField>
+          <PasswordField
+            id="password"
+            label="New password"
+            required
+            autoComplete="new-password"
+            minLength={6}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
 
-          <FormField id="confirmPassword" label="Confirm new password">
-            <input
-              id="confirmPassword"
-              type="password"
-              required
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-            />
-          </FormField>
+          <PasswordField
+            id="confirmPassword"
+            label="Confirm new password"
+            required
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+          />
 
           {error && (
             <p className="form-error form-message" role="alert">

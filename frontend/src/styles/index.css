@@ -294,6 +294,39 @@ img {
   color: var(--muted);
 }
 
+.password-input-wrap {
+  position: relative;
+  display: block;
+}
+
+.password-input-wrap input {
+  padding-right: 8.5rem;
+}
+
+.password-input-wrap .password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--brand);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+}
+
+.password-input-wrap .password-toggle:hover {
+  background-color: var(--pale);
+}
+
+.password-input-wrap .password-toggle:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
 .form-message {
   margin: 0.4rem 0;
   font-size: 0.9rem;
