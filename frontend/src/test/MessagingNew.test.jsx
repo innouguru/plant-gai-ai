@@ -62,7 +62,7 @@ const farmerProfile = {
   full_name: "Ada Farmer",
   role: "farmer",
   farm_id: "farm-1",
-  farm: { id: "farm-1", name: "Green Acres" },
+  farm: { id: "farm-1", name: "Green Acres", admin_id: "admin-1" },
   requires_onboarding: false,
 };
 const adminProfile = {
@@ -176,6 +176,57 @@ describe("farmer messaging", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
     await waitFor(() => expect(sendMessageMock).toHaveBeenCalledWith("admin-1", "Thanks, all good!", "farmer-token"));
     expect((await screen.findAllByText("Thanks, all good!")).length).toBeGreaterThan(0);
+  });
+
+  it("farmer can start a conversation with the farm administrator", async () => {
+    fetchMessagesMock.mockResolvedValue([]);
+    renderAppAs("farmer", "/messages");
+    const button = await screen.findByRole("button", { name: "Contact Administrator" });
+    fireEvent.click(button);
+    expect(await screen.findByPlaceholderText("Write a message…")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Farm Administrator" })).toBeInTheDocument();
+    expect(screen.getByText("No messages yet. Send the first message below.")).toBeInTheDocument();
+    expect(fetchFarmMembersMock).not.toHaveBeenCalled();
+  });
+
+  it("farmer can send the first message to the farm administrator", async () => {
+    fetchMessagesMock.mockResolvedValue([]);
+    sendMessageMock.mockResolvedValue({
+      id: "m2",
+      sender_id: "farmer-1",
+      sender_name: "Ada Farmer",
+      recipient_id: "admin-1",
+      recipient_name: "Ali Admin",
+      body: "Hello admin, I need help.",
+      read_at: null,
+      created_at: "2026-08-19T10:05:00Z",
+    });
+    renderAppAs("farmer", "/messages");
+    fireEvent.click(await screen.findByRole("button", { name: "Contact Administrator" }));
+    const composer = await screen.findByPlaceholderText("Write a message…");
+    fireEvent.change(composer, { target: { value: "Hello admin, I need help." } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(sendMessageMock).toHaveBeenCalledWith("admin-1", "Hello admin, I need help.", "farmer-token"));
+    expect((await screen.findAllByText("Hello admin, I need help.")).length).toBeGreaterThan(0);
+    expect(await screen.findByRole("heading", { name: "Ali Admin" })).toBeInTheDocument();
+  });
+
+  it("does not show Contact Administrator when a conversation already exists", async () => {
+    fetchMessagesMock.mockResolvedValue([
+      {
+        id: "m1",
+        sender_id: "admin-1",
+        sender_name: "Ali Admin",
+        recipient_id: "farmer-1",
+        recipient_name: "Ada Farmer",
+        body: "Hello farmer, how is your crop?",
+        read_at: null,
+        created_at: "2026-08-19T10:00:00Z",
+      },
+    ]);
+    renderAppAs("farmer", "/messages");
+    await screen.findByText("Hello farmer, how is your crop?");
+    expect(screen.queryByRole("button", { name: "Contact Administrator" })).not.toBeInTheDocument();
   });
 });
 

@@ -196,6 +196,14 @@ function MessagesPage() {
     setSendError(null);
   }
 
+  function handleContactAdministrator() {
+    const adminId = profile?.farm?.admin_id;
+    if (!adminId) return;
+    setPendingFarmer({ id: adminId, full_name: "Farm Administrator" });
+    setSelectedId(adminId);
+    setSendError(null);
+  }
+
   function handleCancelNewConversation() {
     setShowNewConversation(false);
   }
@@ -244,6 +252,16 @@ function MessagesPage() {
               disabled={membersLoading}
             >
               New Message
+            </Button>
+          )}
+          {!isAdmin && !isPreview && !loading && conversations.length === 0 && profile?.farm?.admin_id && (
+            <Button
+              variant="primary"
+              block
+              onClick={handleContactAdministrator}
+              aria-label="Contact Administrator"
+            >
+              Contact Administrator
             </Button>
           )}
           {showNewConversation && isAdmin ? (
@@ -303,7 +321,7 @@ function MessagesPage() {
           {!loading && !showNewConversation && conversations.length === 0 && !isPreview && (
             <EmptyState
               title={isAdmin ? "No conversations yet" : "No messages yet"}
-              message={isAdmin ? "Start a new conversation to message a farmer." : "Your farm administrator will message you here."}
+              message={isAdmin ? "Start a new conversation to message a farmer." : "Send a message to your farm administrator to get started."}
             />
           )}
         </div>
