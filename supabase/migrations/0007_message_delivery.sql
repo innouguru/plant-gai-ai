@@ -20,7 +20,8 @@ ALTER TABLE public.messages
 -- -----------------------------------------------------------------------------
 -- send_message — returns delivered_at (always NULL at creation time)
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.send_message(p_recipient_id uuid, p_body text)
+DROP FUNCTION IF EXISTS public.send_message(uuid, text);
+CREATE FUNCTION public.send_message(p_recipient_id uuid, p_body text)
 RETURNS TABLE(
     id uuid, sender_id uuid, sender_name text, recipient_id uuid,
     recipient_name text, body text, read_at timestamptz,
@@ -54,7 +55,8 @@ $$;
 -- list_messages — stamps delivered_at on the recipient's first fetch, then
 -- returns all messages involving the caller (unchanged semantics otherwise).
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.list_messages(p_limit integer DEFAULT 100)
+DROP FUNCTION IF EXISTS public.list_messages(integer);
+CREATE FUNCTION public.list_messages(p_limit integer DEFAULT 100)
 RETURNS TABLE(
     id uuid, sender_id uuid, sender_name text, recipient_id uuid,
     recipient_name text, body text, read_at timestamptz,
@@ -88,7 +90,8 @@ $$;
 -- mark_message_read — sets read_at and guarantees delivered_at is populated at
 -- the same time (Read can never occur without Delivered).
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.mark_message_read(p_message_id uuid)
+DROP FUNCTION IF EXISTS public.mark_message_read(uuid);
+CREATE FUNCTION public.mark_message_read(p_message_id uuid)
 RETURNS TABLE(
     id uuid, sender_id uuid, sender_name text, recipient_id uuid,
     recipient_name text, body text, read_at timestamptz,
@@ -114,8 +117,8 @@ BEGIN
 END;
 $$;
 
--- Re-assert the messaging grants (CREATE OR REPLACE preserves grants, but keep
--- the migration self-contained and explicit like migration 0006).
+-- Re-assert the messaging grants (DROP removes privileges, so re-granting is
+-- required for the recreated functions, matching migration 0006's grants).
 REVOKE EXECUTE ON FUNCTION public.send_message(uuid, text) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.list_messages(integer) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.mark_message_read(uuid) FROM PUBLIC, anon, authenticated;
