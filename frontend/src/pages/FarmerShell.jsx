@@ -33,7 +33,7 @@ function FarmerShell() {
         </Link>
         <div className="farmer-header-actions">
           <Avatar name={displayName} />
-          <button type="button" className="admin-logout" onClick={handleLogout}>
+          <button type="button" className="farmer-logout" onClick={handleLogout}>
             Log out
           </button>
         </div>

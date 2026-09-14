@@ -477,6 +477,27 @@ img {
   border-bottom: 1px solid var(--border);
 }
 
+.farmer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.farmer-logout {
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: var(--forest);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.85rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.farmer-logout:hover {
+  background-color: var(--pale);
+}
+
 .farmer-content {
   flex: 1;
   padding: 1.25rem 1.25rem 6rem;

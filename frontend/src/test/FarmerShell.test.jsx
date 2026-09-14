@@ -76,7 +76,9 @@ describe("farmer shell logout", () => {
 
     const button = await screen.findByRole("button", { name: "Log out" });
     expect(button).toBeInTheDocument();
+    expect(button).toBeVisible();
     expect(button).toHaveAttribute("type", "button");
+    expect(button).toHaveClass("farmer-logout");
   });
 
   it("calls signOut and navigates to login on click", async () => {
