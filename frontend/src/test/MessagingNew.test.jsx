@@ -106,6 +106,7 @@ beforeEach(() => {
     recipient_name: "Ada Farmer",
     body: "Hello farmer",
     read_at: null,
+    delivered_at: null,
     created_at: "2026-08-19T10:02:00Z",
   });
   fetchFarmMembersMock.mockResolvedValue([
@@ -168,6 +169,7 @@ describe("farmer messaging", () => {
       recipient_name: "Ali Admin",
       body: "Thanks, all good!",
       read_at: null,
+      delivered_at: null,
       created_at: "2026-08-19T10:05:00Z",
     });
     renderAppAs("farmer", "/messages");
@@ -199,6 +201,7 @@ describe("farmer messaging", () => {
       recipient_name: "Ali Admin",
       body: "Hello admin, I need help.",
       read_at: null,
+      delivered_at: null,
       created_at: "2026-08-19T10:05:00Z",
     });
     renderAppAs("farmer", "/messages");
@@ -208,6 +211,7 @@ describe("farmer messaging", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
     await waitFor(() => expect(sendMessageMock).toHaveBeenCalledWith("admin-1", "Hello admin, I need help.", "farmer-token"));
     expect((await screen.findAllByText("Hello admin, I need help.")).length).toBeGreaterThan(0);
+    expect(await screen.findByText("✓ Sent")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Ali Admin" })).toBeInTheDocument();
   });
 

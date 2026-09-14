@@ -272,7 +272,16 @@ class FakeDataProvider:
         return result
 
     def list_messages(self, token: str, *, user_id: str, limit: int = 100) -> list[MessageItem]:
-        rows = [message for message in self.messages.values() if user_id in (message.sender_id, message.recipient_id)]
+        for message in self.messages.values():
+            if message.recipient_id == user_id and message.delivered_at is None:
+                self.messages[message.id] = message.model_copy(
+                    update={"delivered_at": message.delivered_at or _now()}
+                )
+        rows = [
+            self.messages[message.id]
+            for message in self.messages.values()
+            if user_id in (message.sender_id, message.recipient_id)
+        ]
         rows.sort(key=lambda message: (message.created_at, message.id), reverse=True)
         return rows[:limit]
 
@@ -296,6 +305,7 @@ class FakeDataProvider:
             recipient_id=recipient_id,
             recipient_name=recipient.full_name or recipient.email,
             body=body,
+            delivered_at=None,
             created_at=_now(),
         )
         self.messages[message.id] = message
@@ -306,7 +316,12 @@ class FakeDataProvider:
         message = self.messages.get(message_id)
         if message is None or message.recipient_id != user_id:
             return None
-        updated = message.model_copy(update={"read_at": message.read_at or _now()})
+        updated = message.model_copy(
+            update={
+                "read_at": message.read_at or _now(),
+                "delivered_at": message.delivered_at or _now(),
+            }
+        )
         self.messages[message_id] = updated
         return updated
 

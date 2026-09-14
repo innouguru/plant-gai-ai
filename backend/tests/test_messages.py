@@ -88,3 +88,57 @@ def test_empty_message_list_and_body_validation(client, provider, make_token):
     response = client.get("/api/v1/messages", headers=auth(make_token(admin.id, admin.email)))
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_new_message_has_delivered_at_null(client, provider, make_token):
+    _, admin, farmer, _ = setup_farm(provider)
+    sent = client.post(
+        "/api/v1/messages",
+        headers=auth(make_token(farmer.id, farmer.email)),
+        json={"recipient_id": admin.id, "body": "Fresh message."},
+    )
+    assert sent.status_code == 201
+    assert sent.json()["delivered_at"] is None
+
+
+def test_recipient_list_stamps_delivered_at(client, provider, make_token):
+    _, admin, farmer, _ = setup_farm(provider)
+    farmer_token = make_token(farmer.id, farmer.email)
+    admin_token = make_token(admin.id, admin.email)
+    message_id = client.post(
+        "/api/v1/messages",
+        headers=auth(farmer_token),
+        json={"recipient_id": admin.id, "body": "For the admin."},
+    ).json()["id"]
+
+    # Sender listing must NOT stamp delivered_at.
+    sender_listing = client.get("/api/v1/messages", headers=auth(farmer_token))
+    assert sender_listing.status_code == 200
+    assert sender_listing.json()[0]["delivered_at"] is None
+
+    # Recipient listing stamps delivered_at.
+    recipient_listing = client.get("/api/v1/messages", headers=auth(admin_token))
+    assert recipient_listing.status_code == 200
+    row = next(item for item in recipient_listing.json() if item["id"] == message_id)
+    assert row["delivered_at"] is not None
+
+    # Repeated recipient listing does not change the existing delivered_at.
+    again = client.get("/api/v1/messages", headers=auth(admin_token))
+    row_again = next(item for item in again.json() if item["id"] == message_id)
+    assert row_again["delivered_at"] == row["delivered_at"]
+
+
+def test_mark_read_sets_read_at_and_ensures_delivered_at(client, provider, make_token):
+    _, admin, farmer, _ = setup_farm(provider)
+    admin_token = make_token(admin.id, admin.email)
+    farmer_token = make_token(farmer.id, farmer.email)
+    message_id = client.post(
+        "/api/v1/messages",
+        headers=auth(farmer_token),
+        json={"recipient_id": admin.id, "body": "Read me."},
+    ).json()["id"]
+
+    marked = client.patch(f"/api/v1/messages/{message_id}/read", headers=auth(admin_token))
+    assert marked.status_code == 200
+    assert marked.json()["read_at"]
+    assert marked.json()["delivered_at"]

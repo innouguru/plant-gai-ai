@@ -22,4 +22,5 @@ class MessageItem(BaseModel):
     recipient_name: str | None = None
     body: str
     read_at: datetime | None = None
+    delivered_at: datetime | None = None
     created_at: datetime

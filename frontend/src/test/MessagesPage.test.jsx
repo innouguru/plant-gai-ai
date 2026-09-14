@@ -30,6 +30,7 @@ const message = (overrides = {}) => ({
   recipient_name: "Admin",
   body: "My cassava leaves are yellow.",
   read_at: "2026-08-19T09:45:00Z",
+  delivered_at: null,
   created_at: "2026-08-19T09:40:00Z",
   ...overrides,
 });
@@ -97,6 +98,51 @@ describe("MessagesPage", () => {
       "token",
     ));
     expect(await screen.findByText("Please send a clearer photo.")).toBeInTheDocument();
+  });
+
+  it("shows Sent status on a delivered-but-unread outgoing message", async () => {
+    fetchMessages.mockResolvedValueOnce([message({
+      id: "m-sent",
+      sender_id: "admin-1",
+      recipient_id: "farmer-1",
+      read_at: null,
+      delivered_at: null,
+    })]);
+    render(<MessagesPage />);
+    expect(await screen.findByText("✓ Sent")).toBeInTheDocument();
+  });
+
+  it("shows Delivered status on an outgoing message the recipient fetched", async () => {
+    fetchMessages.mockResolvedValueOnce([message({
+      id: "m-delivered",
+      sender_id: "admin-1",
+      recipient_id: "farmer-1",
+      read_at: null,
+      delivered_at: "2026-08-19T09:41:00Z",
+    })]);
+    render(<MessagesPage />);
+    expect(await screen.findByText("✓✓ Delivered")).toBeInTheDocument();
+  });
+
+  it("shows Read status on an outgoing message the recipient opened", async () => {
+    fetchMessages.mockResolvedValueOnce([message({
+      id: "m-read",
+      sender_id: "admin-1",
+      recipient_id: "farmer-1",
+      read_at: "2026-08-19T09:45:00Z",
+      delivered_at: "2026-08-19T09:41:00Z",
+    })]);
+    render(<MessagesPage />);
+    expect(await screen.findByText("✓✓ Read")).toBeInTheDocument();
+  });
+
+  it("does not show status on incoming messages", async () => {
+    fetchMessages.mockResolvedValueOnce([message()]);
+    render(<MessagesPage />);
+    await screen.findByRole("textbox", { name: "Write a message" });
+    expect(screen.queryByText("✓ Sent")).not.toBeInTheDocument();
+    expect(screen.queryByText("✓✓ Delivered")).not.toBeInTheDocument();
+    expect(screen.queryByText("✓✓ Read")).not.toBeInTheDocument();
   });
 
   it("uses the development preview conversations without calling the API", async () => {

@@ -38,7 +38,15 @@ function buildConversations(messages, currentUserId) {
       text: message.body,
       time: formatMessageTime(message.created_at),
       readAt: message.read_at,
+      deliveredAt: message.delivered_at,
       createdAt: message.created_at,
+      status: isOutgoing
+        ? message.read_at
+          ? "✓✓ Read"
+          : message.delivered_at
+            ? "✓✓ Delivered"
+            : "✓ Sent"
+        : null,
     });
     conversation.latestAt = conversation.latestAt > message.created_at
       ? conversation.latestAt
@@ -346,7 +354,15 @@ function MessagesPage() {
                     className={message.from === "admin" ? "msg msg-out" : "msg msg-in"}
                   >
                     {message.text}
-                    <span className="msg-time">{message.time}</span>
+                    <span className="msg-time">
+                      {message.status && (
+                        <>
+                          <span className="msg-status">{message.status}</span>
+                          {" · "}
+                        </>
+                      )}
+                      {message.time}
+                    </span>
                   </div>
                 ))
               )}
