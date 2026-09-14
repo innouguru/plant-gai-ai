@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: "/home", end: true, icon: "home", label: "Home" },
   { to: "/diagnose", end: true, icon: "camera", label: "Diagnose" },
   { to: "/history", end: true, icon: "history", label: "History" },
+  { to: "/messages", end: true, icon: "messages", label: "Messages" },
 ];
 
 function FarmerShell() {

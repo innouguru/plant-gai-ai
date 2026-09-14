@@ -38,6 +38,7 @@ function App() {
             <Route path="/diagnose" element={<DiagnosePage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/history/:id" element={<FarmerDiagnosisDetailPage />} />
+            <Route path="/messages" element={<MessagesPage />} />
           </Route>
         </Route>
 
