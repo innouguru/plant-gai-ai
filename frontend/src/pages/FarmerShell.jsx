@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useDevPreview, DevPreviewBanner } from "../preview/devPreview";
 import Logo from "../components/ui/Logo";
@@ -12,11 +12,17 @@ const NAV_ITEMS = [
 ];
 
 function FarmerShell() {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const { previewRole, previewProfile } = useDevPreview();
+  const navigate = useNavigate();
 
   const displayProfile = previewRole ? previewProfile : profile;
   const displayName = displayProfile?.fullName ?? displayProfile?.email;
+
+  async function handleLogout() {
+    await signOut();
+    navigate("/login", { replace: true });
+  }
 
   return (
     <div className="farmer-shell">
@@ -25,7 +31,12 @@ function FarmerShell() {
         <Link to="/home" className="brand-link" aria-label="Plant-GAI-AI home">
           <Logo compact />
         </Link>
-        <Avatar name={displayName} />
+        <div className="farmer-header-actions">
+          <Avatar name={displayName} />
+          <button type="button" className="admin-logout" onClick={handleLogout}>
+            Log out
+          </button>
+        </div>
       </header>
 
       <main id="main-content" className="farmer-content" tabIndex={-1}>

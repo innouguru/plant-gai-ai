@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     model_weights_path: str = "model/weights/plant_disease_resnet18_best.pth"
     model_version: str = "1.0.0"
     model_device: str = "cpu"
+    model_low_confidence_threshold: float = Field(default=0.70, ge=0.0, le=1.0)
 
     rate_limit_enabled: bool = True
     rate_limit_storage: str = "redis"
